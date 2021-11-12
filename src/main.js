@@ -13,24 +13,6 @@ function load()
     boat.init();
 
     loop();
-    setInterval(tick, 1000);
-}
-
-function tick()
-{
-    summonFish();
-}
-
-function summonFish()
-{
-    for (let i = 0; i < fishSpawnRate; i++)
-    {
-        let x = Math.random() > .5 ? WIDTH : 0;
-        let y = HEIGHT/2 + (Math.random() * (HEIGHT / 2 - 200) + 100);
-
-        if (Math.random() > fishSpawnChance)
-            entities.push(new Fish(x, y));
-    }
 }
 
 let running = true;
@@ -43,7 +25,22 @@ function loop()
     update();
     render();
 
+    if (TIMER > fishSpawnRate)
+        summonFish();
+
     if (running) requestAnimationFrame(loop);
+}
+
+function summonFish()
+{
+    for (let i = 0; i < fishSpawnRate; i++)
+    {
+        let x = Math.random() > .5 ? WIDTH : 0;
+        let y = HEIGHT/2 + (Math.random() * (HEIGHT / 2 - 200) + 100);
+
+        if (Math.random() > fishSpawnChance)
+            entities.push(new Fish(x, y));
+    }
 }
 
 function sea()
