@@ -1,2 +1,1 @@
-A game about a lonely fisherman who got lost on sea and has to fish for resources, but beware of what
-comes out at night...
+Walk along with this smiling cube! Solve the maze and reach the end!
