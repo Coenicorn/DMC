@@ -1,8 +1,8 @@
 const canvas = document.getElementById("GameScreen");
 const context = canvas.getContext("2d");
 
-const width = canvas.width = screen.width;
-const height = canvas.height = screen.height;
+const width = canvas.width = innerWidth;
+const height = canvas.height = innerHeight;
 
 context.color = function(r, g, b, a = 1)
 {
