@@ -4,15 +4,6 @@ const context = canvas.getContext("2d");
 const width = canvas.width = screen.width;
 const height = canvas.height = screen.height;
 
-// sum postprocessing hack to be implemented
-
-// const postprocessing = function(intensity)
-// {
-//     let t = new OffscreenCanvas(width, height);
-
-    
-// }(10);
-
 context.color = function(r, g, b, a = 1)
 {
     // if the input is rgba handle it accordingly
@@ -70,7 +61,7 @@ const mouse = {x: 0, y: 0}
 const nodeSpacing = 4;
 
 const instructionSize = 60;
-const instructionSpacing = 4;
+const instructionSpacing = 8;
 
 // level stuff
 
@@ -91,43 +82,55 @@ function Instruction(x, y, state, unmovable)
     {
         if (x > this.x && x < this.x + instructionSize && y > this.y && y < this.y + instructionSize)
         {
-            if (!this.unmovable)
+            if (this.unmovable)
             {
-                return this;
+                return this.state + 1;
             }
             else
             {
-                let instruction = new Instruction(this.x, this.y, this.state, false);
-                currentLevel.instructions.push(instruction);
-
-                return instruction;
+                return this;
             }
         }
     }
 }
-
 function clickAction()
 {
-    if (!selectedInstruction)
+    for (let i = 0; i < levels[currentLevelIndex].instructions.length; i++)
     {
-        let selected = null;
+        let current = levels[currentLevelIndex].instructions[i];
 
-        for (let i = 0; i < currentLevel.instructions.length; i++)
+        let instruction = current.click(mouse.x, mouse.y);
+
+        if (typeof(instruction) == "object")
         {
-            let currentInstruction = currentLevel.instructions[i].click(mouse.x, mouse.y);
+            levels[currentLevelIndex].instructions.splice(levels[currentLevelIndex].instructions.indexOf(instruction),1);
 
-            if (currentInstruction)
+            levels[currentLevelIndex].instructionX -= instructionSize + instructionSpacing;
+
+            for (let i = 0; i < levels[currentLevelIndex].instructions.length; i++)
             {
-                selected = currentInstruction;
-                break;
+                let current2 = levels[currentLevelIndex].instructions[i]
+                if (!current2.unmovable)
+                    current2.x = levels[currentLevelIndex].instructionXFinal + (instructionSize + instructionSpacing) * (i-4) + instructionSpacing;
             }
+
+            return;
         }
 
-        selectedInstruction = selected;
+        if (instruction && levels[currentLevelIndex].instructions.length - 4 < levels[currentLevelIndex].maxInstructions)
+        {
+            instruction--;
+
+            levels[currentLevelIndex].instructionX += instructionSize + instructionSpacing;
+
+            let pushInstruction = new Instruction(levels[currentLevelIndex].instructionX, levels[currentLevelIndex].instructionY, instruction, false);
+
+            levels[currentLevelIndex].instructions.push(pushInstruction);
+        }
     }
 }
 
-function level(layout){
+function level(layout, maxInstructions){
     this.nodeWidth = width / layout[0].length;
     this.nodeHeight = height / layout.length;
 
@@ -137,10 +140,27 @@ function level(layout){
         let tt = [];
         for (let ii = 0; ii < layout[i].length; ii++)
         {
+            if (layout[i][ii] == -1)
+            {
+                let node = {
+                    x: ii * this.nodeWidth,
+                    y: i * this.nodeHeight,
+                    state: 1
+                }
+    
+                tt.push(node);
+                
+                this.playerNodeX = ii;
+                this.playerNodeY = i;
+                this.startNode = node;
+
+                continue;
+            }
+
             let node = {
                 x: ii * this.nodeWidth,
                 y: i * this.nodeHeight,
-                walkable: layout[i][ii]
+                state: layout[i][ii]
             }
 
             tt.push(node);
@@ -148,16 +168,20 @@ function level(layout){
         this.grid.push(tt);
     }
 
+    this.maxInstructions = maxInstructions;
     this.instructions = [];
     this.currentInstruction = 3;
     for (let i = 0; i < 4; i++)
     {
         this.instructions.push(new Instruction(instructionSpacing + (instructionSize + instructionSpacing) * i, height - instructionSize - instructionSpacing, i, true))
     }
+    this.instructionX = instructionSpacing + (instructionSize + instructionSpacing) * 3 + instructionSpacing;
+    this.instructionY = height - instructionSize - instructionSpacing;
+    this.instructionXFinal = instructionSpacing + (instructionSize + instructionSpacing) * 3 + instructionSize + instructionSpacing;
+    this.instructionYFinal = height - instructionSize - instructionSpacing;
 
-    this.playerNodeX = 0;
-    this.playerNodeY = 0;
     this.playerNode = this.grid[this.playerNodeX][this.playerNodeY];
+    this.won = false;
 
     this.updatePlayerNode = function()
     {
@@ -171,19 +195,19 @@ function level(layout){
             switch (direction)
             {
                 case 0:
-                    if (this.grid[this.playerNodeY - 1][this.playerNodeX].walkable)
+                    if (this.grid[this.playerNodeY - 1][this.playerNodeX].state)
                         this.playerNodeY--;
                     break;
                 case 1:
-                    if (this.grid[this.playerNodeY][this.playerNodeX + 1].walkable)
+                    if (this.grid[this.playerNodeY][this.playerNodeX + 1].state)
                         this.playerNodeX++;
                     break;
                 case 2:
-                    if (this.grid[this.playerNodeY + 1][this.playerNodeX].walkable)
+                    if (this.grid[this.playerNodeY + 1][this.playerNodeX].state)
                         this.playerNodeY++;
                     break;
                 case 3:
-                    if (this.grid[this.playerNodeY][this.playerNodeX - 1].walkable)
+                    if (this.grid[this.playerNodeY][this.playerNodeX - 1].state)
                         this.playerNodeX--;
                     break;
             }
@@ -213,37 +237,82 @@ function level(layout){
     }
 };
 
+function renderLevel()
+{
+    for (let i = 0; i < levels[currentLevelIndex].grid.length; i++)
+    {
+        for (let ii = 0; ii < levels[currentLevelIndex].grid[i].length; ii++)
+        {
+            let currentNode = levels[currentLevelIndex].grid[i][ii];
+
+            if (currentNode.state == 2)
+                context.color(0, 255, 0)
+            else if (currentNode.state == 1)
+                context.color(110, 110, 110);
+            else if (currentNode.state == 0)
+                context.color(80, 80, 80);
+
+            context.fillRect(currentNode.x + nodeSpacing / 2, currentNode.y + nodeSpacing / 2, levels[currentLevelIndex].nodeWidth - nodeSpacing, levels[currentLevelIndex].nodeHeight - nodeSpacing);
+        }
+    }
+}
+
 function renderPlayer(level)
 {
     let x = level.playerNode.x;
     let y = level.playerNode.y;
 
-    context.drawImage(assets[4], x + nodeSpacing / 2, y + nodeSpacing / 2, level.nodeWidth - nodeSpacing, level.nodeHeight - nodeSpacing);
+    let index = levels[currentLevelIndex].won ? 5 : 4;
+
+    context.drawImage(assets[index], x + nodeSpacing / 2, y + nodeSpacing / 2, level.nodeWidth - nodeSpacing, level.nodeHeight - nodeSpacing);
 }
 
 function renderInstructions()
 {
-    context.color(255, 255, 255);
+    context.color(60, 60, 60, .5);
+    context.fillRect(levels[currentLevelIndex].instructionXFinal, levels[currentLevelIndex].instructionYFinal - instructionSpacing, (instructionSize + instructionSpacing) * levels[currentLevelIndex].maxInstructions + instructionSpacing, instructionSize + instructionSpacing * 2);
 
-    for (let i = 0; i < currentLevel.instructions.length; i++)
+    for (let i = 0; i < levels[currentLevelIndex].instructions.length; i++)
     {
-        currentLevel.instructions[i].render();
+        levels[currentLevelIndex].instructions[i].render();
     }
 }
 
 const levels = [];
 
+// all da levels |
+
 levels.push(new level([
-    [1, 1, 1, 1, 0, 0, 0, 1],
+    [-1, 1, 1, 1, 0, 0, 0, 2],
     [0, 0, 1, 1, 1, 1, 1, 1],
     [0, 0, 1, 1, 0, 1, 0, 0],
     [0, 0, 1, 1, 0, 1, 1, 1],
     [0, 0, 0, 0, 0, 1, 1, 1],
-]));
+], 9));
 
-let currentLevel = levels[0];
+levels.push(new level([
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, -1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+], 15));
+
+levels.push(new level([
+    [1, 1, 1, 0, 1, 1, 1, 1],
+    [1, 0, 1, 1, 1, 0, 0, 1],
+    [1, -1, 0, 1, 0, 2, 0, 1],
+    [0, 0, 0, 1, 0, 1, 0, 1],
+    [0, 0, 0, 1, 1, 1, 1, 1],
+], 15));
+
+let currentLevelIndex = 0;
 
 let selectedInstruction = null;
+
+let run = null;
 
 let running = true;
 let desiredFPS = 60, FPS = 1000 / 60, last = Date.now(), lag = 0;
@@ -268,11 +337,15 @@ function mainLoop()
 
 function update()
 {
-    try {
-        selectedInstruction.x = mouse.x;
-        selectedInstruction.y = mouse.y;
-    } catch (error) {
-        return;
+    if (levels[currentLevelIndex].playerNode.state == 2)
+    {
+        levels[currentLevelIndex].won = true;
+
+        if (levels[currentLevelIndex+1])
+        {
+            currentLevelIndex++;
+            levels[currentLevelIndex].playerNode = levels[currentLevelIndex].startNode;
+        }
     }
 }
 
@@ -282,22 +355,9 @@ function render()
 
     context.background(100);
 
-    for (let i = 0; i < currentLevel.grid.length; i++)
-    {
-        for (let ii = 0; ii < currentLevel.grid[i].length; ii++)
-        {
-            let currentNode = currentLevel.grid[i][ii];
+    renderLevel();
 
-            if (currentNode.walkable)
-                context.color(110, 110, 110);
-            else
-                context.color(80, 80, 80);
-
-            context.fillRect(currentNode.x + nodeSpacing / 2, currentNode.y + nodeSpacing / 2, currentLevel.nodeWidth - nodeSpacing, currentLevel.nodeHeight - nodeSpacing);
-        }
-    }
-
-    renderPlayer(currentLevel);
+    renderPlayer(levels[currentLevelIndex]);
 
     renderInstructions();
 }
@@ -308,11 +368,12 @@ addEventListener("mousemove", (e)=>{
     mouse.x = e.clientX;
     mouse.y = e.clientY;
 });
-addEventListener("mousedown", clickAction);
-addEventListener("mouseup", ()=>{
-    selectedInstruction = null;
-});
+addEventListener("mouseup", clickAction);
+
 addEventListener("keyup", (e)=>{
-    if (e.key == "Enter")
-        window.run = setInterval(currentLevel.run.bind(currentLevel), 300);
+    if (e.key == "Enter" && !levels[currentLevelIndex].won)
+    {
+        levels[currentLevelIndex].playerNode = levels[currentLevelIndex].startNode;
+        run = setInterval(levels[currentLevelIndex].run.bind(levels[currentLevelIndex]), 200);
+    }
 });
