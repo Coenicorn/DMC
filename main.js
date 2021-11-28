@@ -22,9 +22,14 @@ context.background = function(r, g = r, b = r, a = 1)
     context.fillRect(0, 0, width, height);
 }
 
+context.clear = function()
+{
+    context.clearRect(0, 0, width, height);
+}
+
 // image loading function I got from stackoverflow lol, preeeetty smart stuff
 
-const imagePaths = ["assets/up.png","assets/right.png","assets/down.png","assets/left.png","assets/player_neutral.png","assets/player_happy.png", "assets/start.png", "assets/non_walkable_tile.png", "assets/walkable_tile.png", "assets/end.png"];
+const imagePaths = ["assets/up.png","assets/right.png","assets/down.png","assets/left.png","assets/player_neutral.png","assets/player_happy.png", "assets/start.png", "assets/non_walkable_tile.png", "assets/walkable_tile.png", "assets/end.png", "assets/death.png"];
 const assets = [];
 
 function loadImages(callback)
@@ -240,8 +245,8 @@ function randomMaze(w, h)
     {
         let t = [];
         let x = tile.x;
-        let y =
-        t.push(maze)
+        let y = tile.y;
+        t.push(maze[y][x]);
     }
 }
 
@@ -348,6 +353,7 @@ function renderLevel()
             let currentTile = levels[currentLevelIndex].grid[i][ii];
 
             let image = assets[6 + currentTile.state];
+            console.log(6 + currentTile.state);
 
             context.drawImage(image, currentTile.x, currentTile.y, levels[currentLevelIndex].TileWidth, levels[currentLevelIndex].TileHeight);
         }
@@ -376,25 +382,25 @@ function renderInstructions()
 }
 
 // all da levels
-// declare a level as shown below, -1 being start, 0 being non-walkable, 1 being walkable and 2 being end, there can be multiple of all of these
+// declare a level as shown below, 0 being start, 1 being non-walkable, 2 being walkable, 3 being end and 4 being a death tile
 
-levels.push(new Level([
-    [0, 2, 2, 2, 1, 1, 1, 3],
-    [1, 1, 2, 2, 2, 2, 2, 2],
-    [1, 1, 2, 2, 1, 2, 1, 1],
-    [1, 1, 2, 2, 1, 2, 2, 2],
-    [1, 1, 1, 1, 1, 2, 2, 2],
-], 9));
+// levels.push(new Level([
+//     [0, 2, 2, 2, 1, 1, 1, 3],
+//     [1, 1, 2, 2, 2, 2, 2, 2],
+//     [1, 1, 2, 2, 1, 2, 1, 1],
+//     [1, 1, 2, 2, 1, 2, 2, 2],
+//     [1, 1, 1, 1, 1, 2, 2, 2],
+// ], 9));
 
-levels.push(new Level([
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 2, 2, 2, 0, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-], 6));
+// levels.push(new Level([
+//     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+//     [1, 1, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1],
+//     [1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1],
+//     [1, 1, 1, 2, 2, 2, 0, 1, 1, 1, 1, 1],
+//     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+//     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+//     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+// ], 6));
 
 levels.push(new Level([
     [2, 2, 2, 1, 2, 2, 2, 1],
