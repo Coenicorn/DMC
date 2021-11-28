@@ -24,7 +24,7 @@ context.background = function(r, g = r, b = r, a = 1)
 
 // image loading function I got from stackoverflow lol, preeeetty smart stuff
 
-const imagePaths = ["assets/up.png","assets/right.png","assets/down.png","assets/left.png","assets/player_neutral.png","assets/player_happy.png"];
+const imagePaths = ["assets/up.png","assets/right.png","assets/down.png","assets/left.png","assets/player_neutral.png","assets/player_happy.png", "assets/start.png", "assets/non_walkable_tile.png", "assets/walkable_tile.png", "assets/end.png"];
 const assets = [];
 
 function loadImages(callback)
@@ -63,14 +63,9 @@ function loadImages(callback)
 
 const mouse = {x: 0, y: 0}
 
-// spacing in pixels
-const TileSpacing = 4;
-
 const instructionSize = 60;
 const instructionSpacing = 8;
 
-// tile colors based on state
-const tileColors = ["rgb(80, 80, 80)", "rgb(110, 110, 110, 1)", "rgb(0, 255, 0, 1)", "rgb(255, 0, 0)"];
 const levels = [];
 
 let currentLevelIndex = 0;
@@ -114,19 +109,14 @@ function Tile(x, y, state)
     this.x = x;
     this.y = y;
     this.state = state;
+    this.available = this.state == 1 ? false : true
     this.action = function(instruction)
     {
         try
         {
             switch (this.state)
             {
-                case 0:
-                    return;
-                case 1:
-                    levels[currentLevelIndex].move(instruction.state);
-
-                    break;
-                case 2:
+                case 3: 
                     levels[currentLevelIndex].won = true;
 
                     if (levels[currentLevelIndex+1])
@@ -134,18 +124,15 @@ function Tile(x, y, state)
                         currentLevelIndex++;
                     }
 
-                    break;
-                case 3:
                     resetLevel();
 
                     break;
+                case 4:
+                    resetLevel();
+                    resetPlayer();
+                    return;
             }
         }catch(e){}
-
-        if (!instruction && !levels[currentLevelIndex].won)
-        {
-            resetLevel();
-        }
     }
 }
 
@@ -162,9 +149,9 @@ function Level(layout, maxInstructions){
             let x = ii * this.TileWidth, y = i * this.TileHeight, state;
 
             // if the current tile is the start tile, do some funky stuff. Also, every level expects a start Tile, otherwise things break...
-            if (layout[i][ii] == -1)
+            if (!layout[i][ii])
             {
-                state = 1;
+                state = layout[i][ii];
                 
                 this.startTileX = ii;
                 this.startTileY = i;
@@ -213,31 +200,55 @@ function Level(layout, maxInstructions){
             switch (direction)
             {
                 case 0:
-                    if (this.grid[this.playerTileY - 1][this.playerTileX].state)
+                    if (this.grid[this.playerTileY - 1][this.playerTileX].available)
                         this.playerTileY--;
                     break;
                 case 1:
-                    if (this.grid[this.playerTileY][this.playerTileX + 1].state)
+                    if (this.grid[this.playerTileY][this.playerTileX + 1].available)
                         this.playerTileX++;
                     break;
                 case 2:
-                    if (this.grid[this.playerTileY + 1][this.playerTileX].state)
+                    if (this.grid[this.playerTileY + 1][this.playerTileX].available)
                         this.playerTileY++;
                     break;
                 case 3:
-                    if (this.grid[this.playerTileY][this.playerTileX - 1].state)
+                    if (this.grid[this.playerTileY][this.playerTileX - 1].available)
                         this.playerTileX--;
                     break;
             }
-
         // I have like three try-catch statements with different styles of programming, consistency!
-        }catch(e){return;}
+        }catch(e){}
+    }
+}
+
+function randomMaze(w, h)
+{
+    let maze = [];
+    let tileWidth = width / w;
+    let tileHeight = height / h;
+    for (let i = 0; i < h; i++)
+    {
+        let t = [];
+        for (let ii = 0; ii < w; ii++)
+        {
+            t.push({x: ii, y: i});
+        }
+        maze.push(t);
+    }
+
+    function hasNeighbours(tile)
+    {
+        let t = [];
+        let x = tile.x;
+        let y =
+        t.push(maze)
     }
 }
 
 function runLevel()
 {
     resetLevel();
+    resetPlayer();
 
     let level = levels[currentLevelIndex];
 
@@ -246,6 +257,16 @@ function runLevel()
     function main()
     {
         let instruction = level.instructions[level.currentInstruction];
+
+        if (!instruction && !levels[currentLevelIndex].won)
+        {
+            resetLevel();
+            resetPlayer();
+
+            return;
+        }
+
+        level.move(instruction.state);
 
         level.grid[level.playerTileY][level.playerTileX].action(instruction);
 
@@ -259,8 +280,6 @@ function resetLevel()
 {
     clearInterval(run);
     run = null;
-
-    resetPlayer();
     levels[currentLevelIndex].currentInstruction = 4;
 }
 
@@ -291,6 +310,7 @@ function clickAction()
                 }
 
                 resetLevel();
+                resetPlayer();
 
                 return;
             }
@@ -314,9 +334,7 @@ function clickAction()
 function resetPlayer()
 {
     levels[currentLevelIndex].playerTileX = levels[currentLevelIndex].startTileX;
-    levels[currentLevelIndex].playerTileY = levels[currentLevelIndex].startTileY;
-    
-    render();
+    levels[currentLevelIndex].playerTileY = levels[currentLevelIndex].startTileY;   
 }
 
 // level is rerendered whenever render() is called, you could cache it and just draw it once, but here it doesn't really matter unless your
@@ -329,21 +347,21 @@ function renderLevel()
         {
             let currentTile = levels[currentLevelIndex].grid[i][ii];
 
-            context.color(tileColors[currentTile.state]);
+            let image = assets[6 + currentTile.state];
 
-            context.fillRect(currentTile.x + TileSpacing / 2, currentTile.y + TileSpacing / 2, levels[currentLevelIndex].TileWidth - TileSpacing, levels[currentLevelIndex].TileHeight - TileSpacing);
+            context.drawImage(image, currentTile.x, currentTile.y, levels[currentLevelIndex].TileWidth, levels[currentLevelIndex].TileHeight);
         }
     }
 }
 
 function renderPlayer(level)
 {
-    let x = level.playerTileX * level.TileWidth + TileSpacing / 2;
-    let y = level.playerTileY * level.TileHeight + TileSpacing / 2;
+    let x = level.playerTileX * level.TileWidth;
+    let y = level.playerTileY * level.TileHeight;
 
     let index = levels[currentLevelIndex].won ? 5 : 4;
 
-    context.drawImage(assets[index], x, y, level.TileWidth - TileSpacing, level.TileHeight - TileSpacing);
+    context.drawImage(assets[index], x, y, level.TileWidth, level.TileHeight);
 }
 
 function renderInstructions()
@@ -361,36 +379,34 @@ function renderInstructions()
 // declare a level as shown below, -1 being start, 0 being non-walkable, 1 being walkable and 2 being end, there can be multiple of all of these
 
 levels.push(new Level([
-    [-1, 1, 1, 1, 0, 0, 0, 2],
-    [0, 0, 1, 1, 1, 1, 1, 1],
-    [0, 0, 1, 1, 0, 1, 0, 0],
-    [0, 0, 1, 1, 0, 1, 1, 1],
-    [0, 0, 0, 0, 0, 1, 1, 1],
+    [0, 2, 2, 2, 1, 1, 1, 3],
+    [1, 1, 2, 2, 2, 2, 2, 2],
+    [1, 1, 2, 2, 1, 2, 1, 1],
+    [1, 1, 2, 2, 1, 2, 2, 2],
+    [1, 1, 1, 1, 1, 2, 2, 2],
 ], 9));
 
 levels.push(new Level([
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, -1, 1, 1, 1, 1, 1],
+    [1, 1, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 2, 2, 2, 0, 1, 1, 1, 1, 1],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ], 6));
 
 levels.push(new Level([
-    [1, 1, 1, 0, 1, 1, 1, 0],
-    [1, 0, 1, 1, 1, 0, 1, 0],
-    [1, -1, 0, 1, 0, 2, 1, 0],
-    [0, 0, 0, 1, 3, 1, 1, 1],
-    [0, 0, 0, 0, 0, 0, 1, 1],
+    [2, 2, 2, 1, 2, 2, 2, 1],
+    [2, 1, 2, 2, 2, 1, 2, 1],
+    [2, 0, 1, 2, 1, 3, 2, 1],
+    [1, 1, 1, 2, 4, 2, 2, 2],
+    [1, 1, 1, 1, 1, 1, 2, 2],
 ], 14));
 
 function render()
 {
     context.imageSmoothingEnabled = false;
-
-    context.background(100);
 
     renderLevel();
 
