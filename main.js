@@ -1,5 +1,4 @@
-// This project doesn't have a main loop, but instead renders based on events, pretty neat right? There isn't a main event system, just when anything
-// like a click or smt happens I rerender.
+// This project doesn't have a main loop, but instead renders based on events, pretty neat right?
 
 const canvas = document.getElementById("GameScreen");
 const context = canvas.getContext("2d");
@@ -410,7 +409,7 @@ function load()
     context.fillText("Click to begin", width/2-200, height/2 + 100, 400);
 }
 
-function mainEvent(event)
+function onEvent(event)
 {
     try{
         let type = event.type;
@@ -432,8 +431,8 @@ addEventListener("mousemove", (e)=>{
     mouse.x = e.clientX;
     mouse.y = e.clientY;
 });
-addEventListener("mouseup", mainEvent);
+addEventListener("mouseup", onEvent);
 
-addEventListener("keyup", mainEvent);
+addEventListener("keyup", onEvent);
 
 onload = loadImages(load);
