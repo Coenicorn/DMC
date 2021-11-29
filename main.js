@@ -29,7 +29,11 @@ context.clear = function()
 
 // image loading function I got from stackoverflow lol, preeeetty smart stuff
 
-const imagePaths = ["assets/up.png","assets/right.png","assets/down.png","assets/left.png","assets/player_neutral.png","assets/player_happy.png", "assets/start.png", "assets/non_walkable_tile.png", "assets/walkable_tile.png", "assets/end.png", "assets/death.png"];
+const imagePaths = [
+    "assets/ui/up.png","assets/ui/right.png","assets/ui/down.png","assets/ui/left.png",
+    "assets/character/player_neutral.png","assets/character/player_happy.png", 
+    "assets/tiles/start.png", "assets/tiles/non_walkable_tile.png", "assets/tiles/walkable_tile1.png", "assets/tiles/walkable_tile2.png", "assets/tiles/walkable_tile3.png", "assets/tiles/end.png", "assets/tiles/death.png"
+];
 const assets = [];
 
 function loadImages(callback)
@@ -115,6 +119,27 @@ function Tile(x, y, state)
     this.y = y;
     this.state = state;
     this.available = this.state == 1 ? false : true
+    this.asset = function()
+    {
+        switch (state)
+        {
+            case 0:
+                return assets[6];
+
+            case 1:
+                return assets[7];
+
+            case 2:
+                return assets[8 + Math.floor(Math.random() * 2)];
+
+            case 3:
+                return assets[11];
+
+            case 4:
+                return assets[12];
+
+        }
+    }();
     this.action = function(instruction)
     {
         try
@@ -229,25 +254,96 @@ function Level(layout, maxInstructions){
 function randomMaze(w, h)
 {
     let maze = [];
-    let tileWidth = width / w;
-    let tileHeight = height / h;
-    for (let i = 0; i < h; i++)
+    let level, hasStart = false;
+    for (let i = 0; i < h+1; i++)
     {
         let t = [];
-        for (let ii = 0; ii < w; ii++)
+        for (let ii = 0; ii < w+1; ii++)
         {
-            t.push({x: ii, y: i});
+            t.push({x: ii, y: i, state: 1, parent: null});
         }
         maze.push(t);
     }
 
-    function hasNeighbours(tile)
+    function hasNeighbours(tile)    
     {
-        let t = [];
+        let neighbours = [];
+
         let x = tile.x;
         let y = tile.y;
-        t.push(maze[y][x]);
+
+        let t1 = (maze[y+2]||[])[x] != undefined ? (maze[y+2]||[])[x] : {state:0};
+        let t2 = (maze[y-2]||[])[x] != undefined ? (maze[y-2]||[])[x] : {state:0};
+        let t3 = maze[y][x+2] != undefined ? (maze[y]||[])[x+2] : {state:0};;
+        let t4 = maze[y][x-2] != undefined ? (maze[y]||[])[x-2] : {state:0};;
+
+        if (t1.state)
+            neighbours.push(t1);
+        if (t2.state)
+            neighbours.push(t2);
+        if (t3.state)
+            neighbours.push(t3);
+        if (t4.state)
+            neighbours.push(t4);
+
+        if (neighbours.length)
+            return neighbours;
     }
+
+    function generate(tile)
+    {
+        tile.state = 0;
+
+        let neighbours = hasNeighbours(tile);
+
+        if (neighbours)
+        {
+            let next = neighbours[Math.floor(Math.random() * neighbours.length)];
+
+            next.parent = tile;
+
+            let betweenX = (tile.x + next.x) / 2;
+            let betweenY = (tile.y + next.y) / 2;
+            maze[betweenY][betweenX].state = 0;
+
+            generate(next);
+        }
+        else if (tile.parent)
+        {
+            generate(tile.parent);
+        }
+        else
+        {
+            mazeToLevel();
+        }
+    }
+
+    function mazeToLevel()
+    {
+        level = [];
+        for (let i = 0; i < maze.length; i++)
+        {
+            let level_temp = [];
+            for (let ii = 0; ii < maze[i].length; ii++)
+            {
+                let t = maze[i][ii].state == 1 ? 1 : 2;
+
+                if (!hasStart && Math.random() > .9 && t == 2)
+                {
+                    t = 3;
+                    hasStart = true;
+                }
+
+                level_temp.push(t);
+            }
+            level.push(level_temp);
+        }
+        level[1][1] = 0;
+    }
+
+    generate(maze[1][1]);
+
+    return level;
 }
 
 function runLevel()
@@ -352,10 +448,7 @@ function renderLevel()
         {
             let currentTile = levels[currentLevelIndex].grid[i][ii];
 
-            let image = assets[6 + currentTile.state];
-            console.log(6 + currentTile.state);
-
-            context.drawImage(image, currentTile.x, currentTile.y, levels[currentLevelIndex].TileWidth, levels[currentLevelIndex].TileHeight);
+            context.drawImage(currentTile.asset, currentTile.x, currentTile.y, levels[currentLevelIndex].TileWidth, levels[currentLevelIndex].TileHeight);
         }
     }
 }
@@ -384,31 +477,6 @@ function renderInstructions()
 // all da levels
 // declare a level as shown below, 0 being start, 1 being non-walkable, 2 being walkable, 3 being end and 4 being a death tile
 
-// levels.push(new Level([
-//     [0, 2, 2, 2, 1, 1, 1, 3],
-//     [1, 1, 2, 2, 2, 2, 2, 2],
-//     [1, 1, 2, 2, 1, 2, 1, 1],
-//     [1, 1, 2, 2, 1, 2, 2, 2],
-//     [1, 1, 1, 1, 1, 2, 2, 2],
-// ], 9));
-
-// levels.push(new Level([
-//     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-//     [1, 1, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1],
-//     [1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1],
-//     [1, 1, 1, 2, 2, 2, 0, 1, 1, 1, 1, 1],
-//     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-//     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-//     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-// ], 6));
-
-levels.push(new Level([
-    [2, 2, 2, 1, 2, 2, 2, 1],
-    [2, 1, 2, 2, 2, 1, 2, 1],
-    [2, 0, 1, 2, 1, 3, 2, 1],
-    [1, 1, 1, 2, 4, 2, 2, 2],
-    [1, 1, 1, 1, 1, 1, 2, 2],
-], 14));
 
 function render()
 {
@@ -429,6 +497,38 @@ function load()
     context.font = "48px Tahoma";
     context.fillText("Best experienced in fullscreen", width/2-300, height/2, 600);
     context.fillText("Click to begin", width/2-200, height/2 + 100, 400);
+
+    //     levels.push(new Level([
+    //     [0, 2, 2, 2, 1, 1, 1, 3],
+    //     [1, 1, 2, 2, 2, 2, 2, 2],
+    //     [1, 1, 2, 2, 1, 2, 1, 1],
+    //     [1, 1, 2, 2, 1, 2, 2, 2],
+    //     [1, 1, 1, 1, 1, 2, 2, 2],
+    // ], 9));
+
+    // levels.push(new Level([
+    //     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    //     [1, 1, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1],
+    //     [1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1],
+    //     [1, 1, 1, 2, 2, 2, 0, 1, 1, 1, 1, 1],
+    //     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    //     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    //     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    // ], 6));
+
+    // levels.push(new Level([
+    //     [2, 2, 2, 1, 2, 2, 2, 1],
+    //     [2, 1, 2, 2, 2, 1, 2, 1],
+    //     [2, 0, 1, 2, 1, 3, 2, 1],
+    //     [1, 1, 1, 2, 4, 2, 2, 2],
+    //     [1, 1, 1, 1, 1, 1, 2, 2],
+    // ], 14));
+
+    levels.push(new Level(randomMaze(10, 6), 20));
+    levels.push(new Level(randomMaze(10, 6), 20));
+    levels.push(new Level(randomMaze(10, 6), 20));
+    levels.push(new Level(randomMaze(10, 6), 20));
+    levels.push(new Level(randomMaze(10, 6), 10));
 }
 
 function onEvent(event)
@@ -446,8 +546,10 @@ function onEvent(event)
         }
     }catch(e){}
 
-    render();
-}
+    try {
+        render();
+    }catch(e){}
+}   
 
 addEventListener("mousemove", (e)=>{
     mouse.x = e.clientX;
