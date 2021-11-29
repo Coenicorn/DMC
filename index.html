@@ -31,23 +31,27 @@
         }
 
         #unmovable img {
-            padding: 2px;
+            padding: 1px;
+            border-radius: 10px;
             background-color: none;
         }
 
         #input {
-            padding: 2px;
+            padding: 1px;
+            border-radius: 10px;
 
             background-color: yellow;
         }
 
         #input:hover {
-            padding: 3px;
+            padding: 2px;
+            border-radius: 10px;
             background-color: red;
         }
 
         img:hover {
-            padding: 3px;
+            padding: 2px;
+            border-radius: 10px;
             background-color: red;
         }
 
@@ -59,20 +63,24 @@
     </style>
 </head>
 <body>
-    <canvas id="GameScreen"></canvas>
+    <canvas id="GameScreen">
+        Canvas not supported (ya dingus)
+    </canvas>
 
     <div id="gui">
+        <img src="assets/ui/enter.png" alt="enter" onclick="onEvent({type:'keyup',key:'Enter'})">
         <img src="assets/ui/0.png" alt="arrow down" id="unmovable" onclick="addInstruction(0)">
         <img src="assets/ui/3.png" alt="arrow left" id="unmovable" onclick="addInstruction(3)">
         <img src="assets/ui/1.png" alt="arrow right" id="unmovable" onclick="addInstruction(1)">
         <img src="assets/ui/2.png" alt="arrow up" id="unmovable" onclick="addInstruction(2)">
+        <br>
     </div>
     
 
-    <!-- <div id="loadingScreen" onclick="document.getElementById('loadingScreen').style.visibility = 'hidden'">
+    <div id="loadingScreen" onclick="document.getElementById('loadingScreen').style.visibility = 'hidden'">
         <h1>Best experienced with fullscreen</h1>
         <h1>Click to begin</h2>
-    </div> -->
+    </div>
 
     <script src="main.js"></script>
 </body>

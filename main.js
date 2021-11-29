@@ -235,7 +235,7 @@ function Level(layout, maxInstructions){
 function randomMaze(w, h)
 {
     let maze = [];
-    let level, hasStart = false;
+    let level, hasEnd = false;
     for (let i = 0; i < h+1; i++)
     {
         let t = [];
@@ -309,10 +309,10 @@ function randomMaze(w, h)
             {
                 let t = maze[i][ii].state == 1 ? 1 : 2;
 
-                if (!hasStart && Math.random() > .9 && t == 2)
+                if (!hasEnd && Math.random() > .9 && t == 2)
                 {
                     t = 3;
-                    hasStart = true;
+                    hasEnd = true;
                 }
 
                 level_temp.push(t);
@@ -334,7 +334,7 @@ function runLevel()
 
     let level = levels[currentLevelIndex];
 
-    run = setInterval(main, 200);
+    run = setInterval(main, 150);
 
     function main()
     {
@@ -389,7 +389,7 @@ function renderLevel(level)
 function renderPlayer(level)
 {
     let x = level.playerTileX * level.TileWidth;
-    let y = level.playerTileY * level.TileHeight;
+    let y = level.playerTileY * level.TileHeight - 20;
 
     let index = level.won ? 1 : 0;
 
