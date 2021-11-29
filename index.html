@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Happy Walk</title>
+    <title>Maze Craze</title>
     <style>
         body {
+            width: 100%;
+            height: 100%;
             overflow: hidden;
         }
 
@@ -14,11 +16,63 @@
             position: absolute;
             top: 0;
             left: 0;
+            z-index: -1;
+        }
+
+        #loadingScreen {
+            position: absolute;
+            left: 0px;
+            top: 0px;
+            text-align: center;
+            background-color: grey;
+            width: 100%;
+            height: 100%;
+            font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #unmovable img {
+            padding: 2px;
+            background-color: none;
+        }
+
+        #input {
+            padding: 2px;
+
+            background-color: yellow;
+        }
+
+        #input:hover {
+            padding: 3px;
+            background-color: red;
+        }
+
+        img:hover {
+            padding: 3px;
+            background-color: red;
+        }
+
+        #gui {
+            position: absolute;
+            left: 5px;
+            bottom: 0px;
         }
     </style>
 </head>
 <body>
     <canvas id="GameScreen"></canvas>
+
+    <div id="gui">
+        <img src="assets/ui/0.png" alt="arrow down" id="unmovable" onclick="addInstruction(0)">
+        <img src="assets/ui/3.png" alt="arrow left" id="unmovable" onclick="addInstruction(3)">
+        <img src="assets/ui/1.png" alt="arrow right" id="unmovable" onclick="addInstruction(1)">
+        <img src="assets/ui/2.png" alt="arrow up" id="unmovable" onclick="addInstruction(2)">
+    </div>
+    
+
+    <!-- <div id="loadingScreen" onclick="document.getElementById('loadingScreen').style.visibility = 'hidden'">
+        <h1>Best experienced with fullscreen</h1>
+        <h1>Click to begin</h2>
+    </div> -->
 
     <script src="main.js"></script>
 </body>

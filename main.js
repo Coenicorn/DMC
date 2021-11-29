@@ -6,6 +6,9 @@ const context = canvas.getContext("2d");
 const width = canvas.width = screen.width;
 const height = canvas.height = screen.height;
 
+const levelCache = new OffscreenCanvas(width, height);
+const levelContext = levelCache.getContext("2d");
+
 context.color = function(r, g, b, a = 1)
 {
     // if the input is rgba handle it accordingly
@@ -30,7 +33,6 @@ context.clear = function()
 // image loading function I got from stackoverflow lol, preeeetty smart stuff
 
 const imagePaths = [
-    "assets/ui/up.png","assets/ui/right.png","assets/ui/down.png","assets/ui/left.png",
     "assets/character/player_neutral.png","assets/character/player_happy.png", 
     "assets/tiles/start.png", "assets/tiles/non_walkable_tile.png", "assets/tiles/walkable_tile1.png", "assets/tiles/walkable_tile2.png", "assets/tiles/walkable_tile3.png", "assets/tiles/end.png", "assets/tiles/death.png"
 ];
@@ -72,9 +74,6 @@ function loadImages(callback)
 
 const mouse = {x: 0, y: 0}
 
-const instructionSize = 60;
-const instructionSpacing = 8;
-
 const levels = [];
 
 let currentLevelIndex = 0;
@@ -83,34 +82,24 @@ let run = null;
 
 // level stuff
 
-function Instruction(x, y, state, unmovable)
+function addInstruction(dir)
 {
-    this.x = x;
-    this.y = y;
+    let t = document.createElement("img");
+    t.src = "assets/ui/"+dir+".png";
 
-    this.state = state;
-    this.unmovable = unmovable
+    t.id = "input";
 
-    this.render = function()
-    {
-        context.drawImage(assets[this.state], this.x, this.y, instructionSize, instructionSize);
+    levels[currentLevelIndex].instructions.push({dir: dir, element: t});
+
+    t.onclick = function(){
+        document.getElementById("gui").removeChild(t);
+
+        let level = levels[currentLevelIndex];
+
+        level.instructions.splice(level.instructions.indexOf({dir: dir, element: t}));
     }
 
-    this.click = function(x, y)
-    {
-        if (x > this.x && x < this.x + instructionSize && y > this.y && y < this.y + instructionSize)
-        {
-            if (this.unmovable)
-            {
-                // I do this because if I don't, it'll not see it, as if(1) gives true, but if(0) doesn't, I retrieve the original value somewhere doen there
-                return this.state + 1;
-            }
-            else
-            {
-                return this;
-            }
-        }
-    }
+    document.getElementById("gui").appendChild(t);
 }
 
 function Tile(x, y, state)
@@ -124,23 +113,23 @@ function Tile(x, y, state)
         switch (state)
         {
             case 0:
-                return assets[6];
+                return assets[2];
 
             case 1:
-                return assets[7];
+                return assets[3];
 
             case 2:
-                return assets[8 + Math.floor(Math.random() * 2)];
+                return assets[4 + Math.floor(Math.random() * 2)];
 
             case 3:
-                return assets[11];
+                return assets[7];
 
             case 4:
-                return assets[12];
+                return assets[8];
 
         }
     }();
-    this.action = function(instruction)
+    this.action = function()
     {
         try
         {
@@ -148,6 +137,11 @@ function Tile(x, y, state)
             {
                 case 3: 
                     levels[currentLevelIndex].won = true;
+
+                    for (let i in levels[currentLevelIndex].instructions)
+                    {
+                        document.getElementById("gui").removeChild(levels[currentLevelIndex].instructions[i].element);
+                    }
 
                     if (levels[currentLevelIndex+1])
                     {
@@ -206,23 +200,10 @@ function Level(layout, maxInstructions){
 
     this.maxInstructions = maxInstructions;
     this.instructions = [];
-    this.currentInstruction = 3;
-
-    // initial instructions
-    for (let i = 0; i < 4; i++)
-    {
-        this.instructions.push(new Instruction(instructionSpacing + (instructionSize + instructionSpacing) * i, height - instructionSize - instructionSpacing, i, true))
-    }
-
-    // this is probably waaaaay to long, but if it aint broke, don't fix it (but you should tho)
-    this.instructionX = instructionSpacing + (instructionSize + instructionSpacing) * 3 + instructionSpacing;
-    this.instructionY = height - instructionSize - instructionSpacing;
-    this.instructionXFinal = instructionSpacing + (instructionSize + instructionSpacing) * 3 + instructionSize + instructionSpacing;
-    this.instructionYFinal = height - instructionSize - instructionSpacing;
+    this.currentInstruction = 0;
 
     this.won = false;
 
-    // wow look, hardcoded values, I hate myself
     this.move = function(direction)
     {
         try
@@ -230,16 +211,16 @@ function Level(layout, maxInstructions){
             switch (direction)
             {
                 case 0:
-                    if (this.grid[this.playerTileY - 1][this.playerTileX].available)
-                        this.playerTileY--;
+                    if (this.grid[this.playerTileY + 1][this.playerTileX].available)
+                        this.playerTileY++;
                     break;
                 case 1:
                     if (this.grid[this.playerTileY][this.playerTileX + 1].available)
                         this.playerTileX++;
                     break;
                 case 2:
-                    if (this.grid[this.playerTileY + 1][this.playerTileX].available)
-                        this.playerTileY++;
+                    if (this.grid[this.playerTileY - 1][this.playerTileX].available)
+                        this.playerTileY--;
                     break;
                 case 3:
                     if (this.grid[this.playerTileY][this.playerTileX - 1].available)
@@ -367,7 +348,7 @@ function runLevel()
             return;
         }
 
-        level.move(instruction.state);
+        level.move(instruction.dir);
 
         level.grid[level.playerTileY][level.playerTileX].action(instruction);
 
@@ -381,55 +362,7 @@ function resetLevel()
 {
     clearInterval(run);
     run = null;
-    levels[currentLevelIndex].currentInstruction = 4;
-}
-
-function clickAction()
-{
-    if (!run)
-    {
-        // loop through instructions
-        for (let i = 0; i < levels[currentLevelIndex].instructions.length; i++)
-        {
-            let current = levels[currentLevelIndex].instructions[i];
-
-            // does the instruction exist and is it clicked?
-            let instruction = current.click(mouse.x, mouse.y);
-
-            if (typeof(instruction) == "object")
-            {
-                // if the instruction is an object, it's not unmovable and should be removed
-                levels[currentLevelIndex].instructions.splice(levels[currentLevelIndex].instructions.indexOf(instruction),1);
-
-                // update positions
-                levels[currentLevelIndex].instructionX -= instructionSize + instructionSpacing;
-
-                for (let i = 4; i < levels[currentLevelIndex].instructions.length; i++)
-                {
-                    let current2 = levels[currentLevelIndex].instructions[i];
-                    current2.x = levels[currentLevelIndex].instructionXFinal + (instructionSize + instructionSpacing) * (i-4) + instructionSpacing;
-                }
-
-                resetLevel();
-                resetPlayer();
-
-                return;
-            }
-
-            // Only add the instruction if there's slots available
-            if (instruction && levels[currentLevelIndex].instructions.length - 4 < levels[currentLevelIndex].maxInstructions)
-            {
-                // retrieve original state
-                instruction--;
-
-                levels[currentLevelIndex].instructionX += instructionSize + instructionSpacing;
-
-                let pushInstruction = new Instruction(levels[currentLevelIndex].instructionX, levels[currentLevelIndex].instructionY, instruction, false);
-
-                levels[currentLevelIndex].instructions.push(pushInstruction);
-            }
-        }
-    }
+    levels[currentLevelIndex].currentInstruction = 0;
 }
 
 function resetPlayer()
@@ -440,15 +373,15 @@ function resetPlayer()
 
 // level is rerendered whenever render() is called, you could cache it and just draw it once, but here it doesn't really matter unless your
 // level is really big
-function renderLevel()
+function renderLevel(level)
 {
-    for (let i = 0; i < levels[currentLevelIndex].grid.length; i++)
+    for (let i = 0; i < level.grid.length; i++)
     {
-        for (let ii = 0; ii < levels[currentLevelIndex].grid[i].length; ii++)
+        for (let ii = 0; ii < level.grid[i].length; ii++)
         {
-            let currentTile = levels[currentLevelIndex].grid[i][ii];
+            let currentTile = level.grid[i][ii];
 
-            context.drawImage(currentTile.asset, currentTile.x, currentTile.y, levels[currentLevelIndex].TileWidth, levels[currentLevelIndex].TileHeight);
+            context.drawImage(currentTile.asset, currentTile.x, currentTile.y, level.TileWidth, level.TileHeight);
         }
     }
 }
@@ -458,73 +391,55 @@ function renderPlayer(level)
     let x = level.playerTileX * level.TileWidth;
     let y = level.playerTileY * level.TileHeight;
 
-    let index = levels[currentLevelIndex].won ? 5 : 4;
+    let index = level.won ? 1 : 0;
 
     context.drawImage(assets[index], x, y, level.TileWidth, level.TileHeight);
 }
-
-function renderInstructions()
-{
-    context.color(60, 60, 60, .5);
-    context.fillRect(levels[currentLevelIndex].instructionXFinal, levels[currentLevelIndex].instructionYFinal - instructionSpacing, (instructionSize + instructionSpacing) * levels[currentLevelIndex].maxInstructions + instructionSpacing, instructionSize + instructionSpacing * 2);
-
-    for (let i = 0; i < levels[currentLevelIndex].instructions.length; i++)
-    {
-        levels[currentLevelIndex].instructions[i].render();
-    }
-}
-
-// all da levels
-// declare a level as shown below, 0 being start, 1 being non-walkable, 2 being walkable, 3 being end and 4 being a death tile
 
 
 function render()
 {
     context.imageSmoothingEnabled = false;
 
-    renderLevel();
+    let level = levels[currentLevelIndex];
 
-    renderPlayer(levels[currentLevelIndex]);
+    renderLevel(level);
 
-    renderInstructions();
+    renderPlayer(level);
 }
 
 function load()
 {
-    context.background(50);
+    // all da levels
+    // declare a level as shown below, 0 being start, 1 being non-walkable, 2 being walkable, 3 being end and 4 being a death tile
 
-    context.color(120, 120, 120);
-    context.font = "48px Tahoma";
-    context.fillText("Best experienced in fullscreen", width/2-300, height/2, 600);
-    context.fillText("Click to begin", width/2-200, height/2 + 100, 400);
+    levels.push(new Level([
+        [0, 2, 2, 2, 1, 1, 1, 3],
+        [1, 1, 2, 2, 2, 2, 2, 2],
+        [1, 1, 2, 2, 1, 2, 1, 1],
+        [1, 1, 2, 2, 1, 2, 2, 2],
+        [1, 1, 1, 1, 1, 2, 2, 2],
+    ], 9));
 
-    //     levels.push(new Level([
-    //     [0, 2, 2, 2, 1, 1, 1, 3],
-    //     [1, 1, 2, 2, 2, 2, 2, 2],
-    //     [1, 1, 2, 2, 1, 2, 1, 1],
-    //     [1, 1, 2, 2, 1, 2, 2, 2],
-    //     [1, 1, 1, 1, 1, 2, 2, 2],
-    // ], 9));
+    levels.push(new Level([
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 2, 2, 2, 0, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    ], 6));
 
-    // levels.push(new Level([
-    //     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    //     [1, 1, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1],
-    //     [1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1],
-    //     [1, 1, 1, 2, 2, 2, 0, 1, 1, 1, 1, 1],
-    //     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    //     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    //     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    // ], 6));
+    levels.push(new Level([
+        [2, 2, 2, 1, 2, 2, 2, 1],
+        [2, 1, 2, 2, 2, 1, 2, 1],
+        [2, 0, 1, 2, 1, 3, 2, 1],
+        [1, 1, 1, 2, 4, 2, 2, 2],
+        [1, 1, 1, 1, 1, 1, 2, 2],
+    ], 14));
 
-    // levels.push(new Level([
-    //     [2, 2, 2, 1, 2, 2, 2, 1],
-    //     [2, 1, 2, 2, 2, 1, 2, 1],
-    //     [2, 0, 1, 2, 1, 3, 2, 1],
-    //     [1, 1, 1, 2, 4, 2, 2, 2],
-    //     [1, 1, 1, 1, 1, 1, 2, 2],
-    // ], 14));
-
-    levels.push(new Level(randomMaze(10, 6), 20));
+    levels.push(new Level(randomMaze(20, 12), 20));
     levels.push(new Level(randomMaze(10, 6), 20));
     levels.push(new Level(randomMaze(10, 6), 20));
     levels.push(new Level(randomMaze(10, 6), 20));
@@ -537,9 +452,6 @@ function onEvent(event)
         let type = event.type;
         switch (type)
         {
-            case "mouseup":
-                clickAction(mouse.x, mouse.y);
-                break;
             case "keyup":
                 if (event.key == "Enter" && !levels[currentLevelIndex].won)
                     runLevel(levels[currentLevelIndex]);
@@ -556,7 +468,7 @@ addEventListener("mousemove", (e)=>{
     mouse.y = e.clientY;
 });
 addEventListener("mouseup", onEvent);
-
 addEventListener("keyup", onEvent);
+
 
 onload = loadImages(load);
