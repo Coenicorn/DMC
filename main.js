@@ -77,15 +77,13 @@ const levels = [];
 
 let currentLevelIndex = 0;
 
-let run = null;
-
 const updateInterval = 200;
 
 // level stuff
 
 function addInstruction(dir)
 {
-    if (run === null)
+    if (!running)
     {
         let t = document.createElement("img");
         t.src = "assets/ui/"+dir+".png";
@@ -143,7 +141,7 @@ function Tile(x, y, state)
                     break;
 
                 case 1:
-                    breakLoop();
+                    running = false;
 
                     levels[currentLevelIndex].playerAssetIndex = 1;
                     render();
@@ -154,14 +152,14 @@ function Tile(x, y, state)
 
                 case 3: 
 
-                    breakLoop();
+                    running = false;
 
                     setTimeout(nextLevel, updateInterval);
 
                     break;
                 case 4:
-                    breakLoop();
-                    resetPlayer();
+                    running = false;
+                    setTimeout(resetPlayer, updateInterval);
 
                     break;
             }
@@ -190,6 +188,8 @@ function Level(layout, maxInstructions){
                 this.startTileY = i;
                 this.playerTileX = this.startTileX;
                 this.playerTileY = this.startTileY;
+                this.playerX = this.playerTileX;
+                this.playerY = this.playerTileY;
             }
             else
             {
@@ -214,8 +214,36 @@ function Level(layout, maxInstructions){
     this.won = false;
     this.playerAssetIndex = 0;
 
-    this.move = function(direction)
+    this.move = function(direction, callback)
     {
+        // fps-estimation, fpstimation, haha puns
+        let fpstimation = 20, displacement = 1 / fpstimation, i = 0, self = this, xFinal, yFinal;
+
+        function moveAnimation(x, y)
+        {
+            if (x != undefined && y != undefined)
+            {
+                xFinal = x;
+                yFinal = y;
+            }
+
+            self.playerY += yFinal * displacement;
+            self.playerX += xFinal * displacement;
+
+            i++;
+            if (i <= fpstimation)
+                requestAnimationFrame(moveAnimation);
+            else
+            {
+                self.playerX = self.playerTileX;
+                self.playerY = self.playerTileY;
+
+                callback();
+            }
+
+            render();
+        }
+
         try
         {
             switch (direction)
@@ -223,18 +251,22 @@ function Level(layout, maxInstructions){
                 case 0:
                     if (this.grid[this.playerTileY+1][this.playerTileX])
                         this.playerTileY++;
+                        moveAnimation(0, 1);
                     break;
                 case 1:
                     if (this.grid[this.playerTileY][this.playerTileX+1])
                         this.playerTileX++;
+                        moveAnimation(1, 0);
                     break;
                 case 2:
                     if (this.grid[this.playerTileY-1][this.playerTileX])
                         this.playerTileY--;
+                        moveAnimation(0, -1);
                     break;
                 case 3:
                     if (this.grid[this.playerTileY][this.playerTileX-1])
                         this.playerTileX--;
+                        moveAnimation(-1, 0);
                     break;
             }
         // I have like three try-catch statements with different styles of programming, consistency!
@@ -242,10 +274,12 @@ function Level(layout, maxInstructions){
     }
 }
 
+// random level generation, quite proud of that one
+
 function randomMaze(w, h)
 {
-    let maze = [];
-    let level, hasEnd = false;
+    let maze = [], level, hasEnd = false;
+    
     for (let i = 0; i < h+1; i++)
     {
         let t = [];
@@ -336,36 +370,48 @@ function randomMaze(w, h)
     return level;
 }
 
+let running = false;
+
 function runLevel()
 {
-    breakLoop();
     resetLevel();
     resetPlayer();
 
-    let level = levels[currentLevelIndex];
+    running = true;
 
-    run = setInterval(main, updateInterval);
+    let level = levels[currentLevelIndex];
+    let instruction;
 
     function main()
     {
-        let instruction = level.instructions[level.currentInstruction];
-
-        if (!instruction && !levels[currentLevelIndex].won)
+        if (running)
         {
-            breakLoop();
-            resetPlayer();
+            instruction = level.instructions[level.currentInstruction];
 
-            return;
+            if (!instruction && !levels[currentLevelIndex].won)
+            {
+                running = false;
+                resetPlayer();
+
+                return;
+            }
+
+            level.currentInstruction++;
+
+            level.move(instruction.dir, runMain);
         }
+    }
 
-        level.move(instruction.dir);
-
+    function runMain()
+    {
         level.grid[level.playerTileY][level.playerTileX].action(instruction);
 
         render();
 
-        level.currentInstruction++;
+        main();
     }
+
+    main();
 }
 
 function nextLevel()
@@ -375,8 +421,10 @@ function nextLevel()
         document.getElementById("gui").removeChild(levels[currentLevelIndex].instructions[i].element)
     }
 
-    if (levels[currentLevelIndex+1])
-        currentLevelIndex++;
+    if (!levels[currentLevelIndex+1])
+        levels.push(new Level(randomMaze(16, 10), 10));
+    
+    currentLevelIndex++;
 
     render();
 }
@@ -386,23 +434,17 @@ function resetLevel()
     levels[currentLevelIndex].currentInstruction = 0;
 }
 
-function breakLoop()
-{
-    if (run)
-    {
-        clearInterval(run);
-        run = null;
-    }
-}
-
 function resetPlayer()
 {
-    breakLoop();
+    running = false;
+    let level = levels[currentLevelIndex];
 
-    levels[currentLevelIndex].playerTileX = levels[currentLevelIndex].startTileX;
-    levels[currentLevelIndex].playerTileY = levels[currentLevelIndex].startTileY; 
+    level.playerTileX = level.startTileX;
+    level.playerTileY = level.startTileY; 
+    level.playerX = level.startTileX;
+    level.playerY = level.startTileY; 
     
-    levels[currentLevelIndex].playerAssetIndex = 0;
+    level.playerAssetIndex = 0;
 }
 
 // level is rerendered whenever render() is called, you could cache it and just draw it once, but here it doesn't really matter unless your
@@ -422,8 +464,8 @@ function renderLevel(level)
 
 function renderPlayer(level)
 {
-    let x = level.playerTileX * level.TileWidth;
-    let y = level.playerTileY * level.TileHeight - 20;
+    let x = level.playerX * level.TileWidth;
+    let y = level.playerY * level.TileHeight - 20;
 
     context.drawImage(assets[level.playerAssetIndex], x, y, level.TileWidth, level.TileHeight);
 }
@@ -455,11 +497,18 @@ function load()
         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     ], 9));
 
-    levels.push(new Level(randomMaze(10, 6), 20));
-    levels.push(new Level(randomMaze(10, 6), 20));
-    levels.push(new Level(randomMaze(10, 6), 20));
-    levels.push(new Level(randomMaze(10, 6), 20));
     levels.push(new Level(randomMaze(10, 6), 10));
+    levels.push(new Level(randomMaze(10, 6), 10));
+    levels.push(new Level(randomMaze(10, 6), 10));
+    levels.push(new Level(randomMaze(10, 6), 10));
+    levels.push(new Level(randomMaze(12, 8), 10));
+    levels.push(new Level(randomMaze(12, 8), 10));
+    levels.push(new Level(randomMaze(12, 8), 10));
+    levels.push(new Level(randomMaze(12, 8), 10));
+    levels.push(new Level(randomMaze(14, 8), 10));
+    levels.push(new Level(randomMaze(14, 8), 10));
+    levels.push(new Level(randomMaze(14, 8), 10));
+
 }
 
 function onEvent(event)
