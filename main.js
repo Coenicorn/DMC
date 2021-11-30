@@ -466,8 +466,26 @@ function onEvent(event)
         switch (type)
         {
             case "keyup":
-                if (event.key == "Enter" && !levels[currentLevelIndex].won)
-                    runLevel(levels[currentLevelIndex]);
+                
+                switch (event.key)
+                {
+                    case "Enter":
+                        if (!levels[currentLevelIndex].won)
+                            runLevel(levels[currentLevelIndex]);
+                        break;
+                    case "ArrowRight":
+                        addInstruction(1);
+                        break;
+                    case "ArrowLeft":
+                        addInstruction(3);
+                        break;
+                    case "ArrowUp":
+                        addInstruction(2);
+                        break;
+                    case "ArrowDown":
+                        addInstruction(0);
+                        break;
+                }
         }
     }catch(e){}
 
