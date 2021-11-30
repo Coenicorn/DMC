@@ -338,6 +338,7 @@ function randomMaze(w, h)
 
 function runLevel()
 {
+    breakLoop();
     resetLevel();
     resetPlayer();
 
@@ -396,6 +397,8 @@ function breakLoop()
 
 function resetPlayer()
 {
+    breakLoop();
+
     levels[currentLevelIndex].playerTileX = levels[currentLevelIndex].startTileX;
     levels[currentLevelIndex].playerTileY = levels[currentLevelIndex].startTileY; 
     
