@@ -1,5 +1,22 @@
 // This project doesn't have a main loop, but instead renders based on events, pretty neat right?
 
+// ------------------------------------------------------------------------------
+// VARIABLE DECLERATIONS
+// ------------------------------------------------------------------------------
+
+const mouse = {x: 0, y: 0}
+const levels = [];
+
+let currentLevelIndex = 0;
+
+const updateInterval = 200;
+
+let running = false;
+
+// ------------------------------------------------------------------------------
+// RENDERING AND IMAGE LOADING
+// ------------------------------------------------------------------------------
+
 const canvas = document.getElementById("GameScreen");
 const context = canvas.getContext("2d");
 
@@ -70,16 +87,44 @@ function loadImages(callback)
     main();
 }
 
-// initial variables
+// level is rerendered whenever render() is called, you could cache it and just draw it once, but here it doesn't really matter unless your
+// level is really big
+function renderLevel(level)
+{
+    for (let i = 0; i < level.grid.length; i++)
+    {
+        for (let ii = 0; ii < level.grid[i].length; ii++)
+        {
+            let currentTile = level.grid[i][ii];
 
-const mouse = {x: 0, y: 0}
-const levels = [];
+            context.drawImage(currentTile.asset, currentTile.x, currentTile.y, level.TileWidth, level.TileHeight);
+        }
+    }
+}
 
-let currentLevelIndex = 0;
+function renderPlayer(level)
+{
+    let x = level.playerX * level.TileWidth;
+    let y = level.playerY * level.TileHeight - 20;
 
-const updateInterval = 200;
+    context.drawImage(assets[level.playerAssetIndex], x, y, level.TileWidth, level.TileHeight);
+}
 
-// level stuff
+
+function render()
+{
+    context.imageSmoothingEnabled = false;
+
+    let level = levels[currentLevelIndex];
+
+    renderLevel(level);
+
+    renderPlayer(level);
+}
+
+// ------------------------------------------------------------------------------
+// CLASSES AND OBJECTS BOIIIIIIIIIIIIII
+// ------------------------------------------------------------------------------
 
 function addInstruction(dir)
 {
@@ -146,7 +191,7 @@ function Tile(x, y, state)
                     levels[currentLevelIndex].playerAssetIndex = 1;
                     render();
 
-                    setTimeout(resetPlayer, updateInterval);  
+                    setTimeout(resetPlayer, updateInterval);
 
                     break;
 
@@ -370,7 +415,9 @@ function randomMaze(w, h)
     return level;
 }
 
-let running = false;
+// ------------------------------------------------------------------------------
+// MAIN
+// ------------------------------------------------------------------------------
 
 function runLevel()
 {
@@ -414,6 +461,10 @@ function runLevel()
     main();
 }
 
+// ------------------------------------------------------------------------------
+// RESET FUNCTIONS
+// ------------------------------------------------------------------------------
+
 function nextLevel()
 {
     for (let i in levels[currentLevelIndex].instructions)
@@ -445,41 +496,6 @@ function resetPlayer()
     level.playerY = level.startTileY; 
     
     level.playerAssetIndex = 0;
-}
-
-// level is rerendered whenever render() is called, you could cache it and just draw it once, but here it doesn't really matter unless your
-// level is really big
-function renderLevel(level)
-{
-    for (let i = 0; i < level.grid.length; i++)
-    {
-        for (let ii = 0; ii < level.grid[i].length; ii++)
-        {
-            let currentTile = level.grid[i][ii];
-
-            context.drawImage(currentTile.asset, currentTile.x, currentTile.y, level.TileWidth, level.TileHeight);
-        }
-    }
-}
-
-function renderPlayer(level)
-{
-    let x = level.playerX * level.TileWidth;
-    let y = level.playerY * level.TileHeight - 20;
-
-    context.drawImage(assets[level.playerAssetIndex], x, y, level.TileWidth, level.TileHeight);
-}
-
-
-function render()
-{
-    context.imageSmoothingEnabled = false;
-
-    let level = levels[currentLevelIndex];
-
-    renderLevel(level);
-
-    renderPlayer(level);
 }
 
 function load()
