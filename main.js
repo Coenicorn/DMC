@@ -344,7 +344,7 @@ function runLevel()
 
     let level = levels[currentLevelIndex];
 
-    run = setInterval(main, 300);
+    run = setInterval(main, updateInterval);
 
     function main()
     {
