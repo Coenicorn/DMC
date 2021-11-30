@@ -334,7 +334,7 @@ function runLevel()
 
     let level = levels[currentLevelIndex];
 
-    run = setInterval(main, 150);
+    run = setInterval(main, 300);
 
     function main()
     {
@@ -439,7 +439,7 @@ function load()
         [1, 1, 1, 1, 1, 1, 2, 2],
     ], 14));
 
-    levels.push(new Level(randomMaze(20, 12), 20));
+    levels.push(new Level(randomMaze(10, 6), 20));
     levels.push(new Level(randomMaze(10, 6), 20));
     levels.push(new Level(randomMaze(10, 6), 20));
     levels.push(new Level(randomMaze(10, 6), 20));
