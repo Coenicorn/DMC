@@ -33,7 +33,7 @@ context.clear = function()
 // image loading function I got from stackoverflow lol, preeeetty smart stuff
 
 const imagePaths = [
-    "assets/character/player_neutral.png","assets/character/player_happy.png", 
+    "assets/character/player_neutral.png","assets/character/player_water.png", 
     "assets/tiles/start.png", "assets/tiles/non_walkable_tile.png", "assets/tiles/walkable_tile1.png", "assets/tiles/walkable_tile2.png", "assets/tiles/walkable_tile3.png", "assets/tiles/end.png", "assets/tiles/death.png"
 ];
 const assets = [];
@@ -84,22 +84,25 @@ let run = null;
 
 function addInstruction(dir)
 {
-    let t = document.createElement("img");
-    t.src = "assets/ui/"+dir+".png";
+    if (run === null)
+    {
+        let t = document.createElement("img");
+        t.src = "assets/ui/"+dir+".png";
 
-    t.id = "input";
+        t.id = "input";
 
-    levels[currentLevelIndex].instructions.push({dir: dir, element: t});
+        levels[currentLevelIndex].instructions.push({dir: dir, element: t});
 
-    t.onclick = function(){
-        document.getElementById("gui").removeChild(t);
+        t.onclick = function(){
+            document.getElementById("gui").removeChild(t);
 
-        let level = levels[currentLevelIndex];
+            let level = levels[currentLevelIndex];
 
-        level.instructions.splice(level.instructions.indexOf({dir: dir, element: t}));
+            level.instructions.splice(level.instructions.indexOf({dir: dir, element: t}));
+        }
+
+        document.getElementById("gui").appendChild(t);
     }
-
-    document.getElementById("gui").appendChild(t);
 }
 
 function Tile(x, y, state)
@@ -135,6 +138,12 @@ function Tile(x, y, state)
         {
             switch (this.state)
             {
+                case 1:
+                    setTimeout(()=>{
+                        resetLevel();
+                        resetPlayer();
+                    }, 20);
+
                 case 3: 
                     levels[currentLevelIndex].won = true;
 
@@ -211,20 +220,16 @@ function Level(layout, maxInstructions){
             switch (direction)
             {
                 case 0:
-                    if (this.grid[this.playerTileY + 1][this.playerTileX].available)
-                        this.playerTileY++;
+                    this.playerTileY++;
                     break;
                 case 1:
-                    if (this.grid[this.playerTileY][this.playerTileX + 1].available)
-                        this.playerTileX++;
+                    this.playerTileX++;
                     break;
                 case 2:
-                    if (this.grid[this.playerTileY - 1][this.playerTileX].available)
-                        this.playerTileY--;
+                    this.playerTileY--;
                     break;
                 case 3:
-                    if (this.grid[this.playerTileY][this.playerTileX - 1].available)
-                        this.playerTileX--;
+                    this.playerTileX--;
                     break;
             }
         // I have like three try-catch statements with different styles of programming, consistency!
