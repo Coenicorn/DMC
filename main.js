@@ -73,12 +73,13 @@ function loadImages(callback)
 // initial variables
 
 const mouse = {x: 0, y: 0}
-
 const levels = [];
 
 let currentLevelIndex = 0;
 
 let run = null;
+
+const updateInterval = 200;
 
 // level stuff
 
@@ -93,6 +94,8 @@ function addInstruction(dir)
 
         levels[currentLevelIndex].instructions.push({dir: dir, element: t});
 
+        document.getElementById("gui").appendChild(t);
+
         t.onclick = function(){
             document.getElementById("gui").removeChild(t);
 
@@ -100,8 +103,6 @@ function addInstruction(dir)
 
             level.instructions.splice(level.instructions.indexOf({dir: dir, element: t}));
         }
-
-        document.getElementById("gui").appendChild(t);
     }
 }
 
@@ -138,32 +139,31 @@ function Tile(x, y, state)
         {
             switch (this.state)
             {
+                case 0:
+                    break;
+
                 case 1:
-                    setTimeout(()=>{
-                        resetLevel();
-                        resetPlayer();
-                    }, 20);
+                    breakLoop();
+
+                    levels[currentLevelIndex].playerAssetIndex = 1;
+                    render();
+
+                    setTimeout(resetPlayer, updateInterval);  
+
+                    break;
 
                 case 3: 
-                    levels[currentLevelIndex].won = true;
 
-                    for (let i in levels[currentLevelIndex].instructions)
-                    {
-                        document.getElementById("gui").removeChild(levels[currentLevelIndex].instructions[i].element);
-                    }
+                    breakLoop();
 
-                    if (levels[currentLevelIndex+1])
-                    {
-                        currentLevelIndex++;
-                    }
-
-                    resetLevel();
+                    setTimeout(nextLevel, updateInterval);
 
                     break;
                 case 4:
-                    resetLevel();
+                    breakLoop();
                     resetPlayer();
-                    return;
+
+                    break;
             }
         }catch(e){}
     }
@@ -212,6 +212,7 @@ function Level(layout, maxInstructions){
     this.currentInstruction = 0;
 
     this.won = false;
+    this.playerAssetIndex = 0;
 
     this.move = function(direction)
     {
@@ -220,16 +221,20 @@ function Level(layout, maxInstructions){
             switch (direction)
             {
                 case 0:
-                    this.playerTileY++;
+                    if (this.grid[this.playerTileY+1][this.playerTileX])
+                        this.playerTileY++;
                     break;
                 case 1:
-                    this.playerTileX++;
+                    if (this.grid[this.playerTileY][this.playerTileX+1])
+                        this.playerTileX++;
                     break;
                 case 2:
-                    this.playerTileY--;
+                    if (this.grid[this.playerTileY-1][this.playerTileX])
+                        this.playerTileY--;
                     break;
                 case 3:
-                    this.playerTileX--;
+                    if (this.grid[this.playerTileY][this.playerTileX-1])
+                        this.playerTileX--;
                     break;
             }
         // I have like three try-catch statements with different styles of programming, consistency!
@@ -246,7 +251,7 @@ function randomMaze(w, h)
         let t = [];
         for (let ii = 0; ii < w+1; ii++)
         {
-            t.push({x: ii, y: i, state: 1, parent: null});
+            t.push({x: ii, y: i, state: 1, parent: null, loopedOver: false});
         }
         maze.push(t);
     }
@@ -258,31 +263,32 @@ function randomMaze(w, h)
         let x = tile.x;
         let y = tile.y;
 
-        let t1 = (maze[y+2]||[])[x] != undefined ? (maze[y+2]||[])[x] : {state:0};
-        let t2 = (maze[y-2]||[])[x] != undefined ? (maze[y-2]||[])[x] : {state:0};
-        let t3 = maze[y][x+2] != undefined ? (maze[y]||[])[x+2] : {state:0};;
-        let t4 = maze[y][x-2] != undefined ? (maze[y]||[])[x-2] : {state:0};;
+        let t1 = (maze[y+2]||[])[x] != undefined ? (maze[y+2]||[])[x] : {state:2};
+        let t2 = (maze[y-2]||[])[x] != undefined ? (maze[y-2]||[])[x] : {state:2};
+        let t3 = maze[y][x+2] != undefined ? (maze[y]||[])[x+2] : {state:2};
+        let t4 = maze[y][x-2] != undefined ? (maze[y]||[])[x-2] : {state:2};
 
-        if (t1.state)
+        if (t1.state == 1)
             neighbours.push(t1);
-        if (t2.state)
+        if (t2.state == 1)
             neighbours.push(t2);
-        if (t3.state)
+        if (t3.state == 1)
             neighbours.push(t3);
-        if (t4.state)
+        if (t4.state == 1)
             neighbours.push(t4);
 
-        if (neighbours.length)
-            return neighbours;
+        return neighbours;
     }
 
     function generate(tile)
     {
-        tile.state = 0;
+        if (tile.state != 3)
+            tile.state = 2;
 
         let neighbours = hasNeighbours(tile);
 
-        if (neighbours)
+        if (neighbours.length)
+
         {
             let next = neighbours[Math.floor(Math.random() * neighbours.length)];
 
@@ -290,12 +296,16 @@ function randomMaze(w, h)
 
             let betweenX = (tile.x + next.x) / 2;
             let betweenY = (tile.y + next.y) / 2;
-            maze[betweenY][betweenX].state = 0;
+            maze[betweenY][betweenX].state = 2;
 
             generate(next);
         }
         else if (tile.parent)
         {
+            if (!hasEnd)
+                tile.state = 3;
+                hasEnd = true;
+
             generate(tile.parent);
         }
         else
@@ -312,13 +322,7 @@ function randomMaze(w, h)
             let level_temp = [];
             for (let ii = 0; ii < maze[i].length; ii++)
             {
-                let t = maze[i][ii].state == 1 ? 1 : 2;
-
-                if (!hasEnd && Math.random() > .9 && t == 2)
-                {
-                    t = 3;
-                    hasEnd = true;
-                }
+                let t = maze[i][ii].state;
 
                 level_temp.push(t);
             }
@@ -347,7 +351,7 @@ function runLevel()
 
         if (!instruction && !levels[currentLevelIndex].won)
         {
-            resetLevel();
+            breakLoop();
             resetPlayer();
 
             return;
@@ -363,17 +367,39 @@ function runLevel()
     }
 }
 
+function nextLevel()
+{
+    for (let i in levels[currentLevelIndex].instructions)
+    {
+        document.getElementById("gui").removeChild(levels[currentLevelIndex].instructions[i].element)
+    }
+
+    if (levels[currentLevelIndex+1])
+        currentLevelIndex++;
+
+    render();
+}
+
 function resetLevel()
 {
-    clearInterval(run);
-    run = null;
     levels[currentLevelIndex].currentInstruction = 0;
+}
+
+function breakLoop()
+{
+    if (run)
+    {
+        clearInterval(run);
+        run = null;
+    }
 }
 
 function resetPlayer()
 {
     levels[currentLevelIndex].playerTileX = levels[currentLevelIndex].startTileX;
-    levels[currentLevelIndex].playerTileY = levels[currentLevelIndex].startTileY;   
+    levels[currentLevelIndex].playerTileY = levels[currentLevelIndex].startTileY; 
+    
+    levels[currentLevelIndex].playerAssetIndex = 0;
 }
 
 // level is rerendered whenever render() is called, you could cache it and just draw it once, but here it doesn't really matter unless your
@@ -396,9 +422,7 @@ function renderPlayer(level)
     let x = level.playerTileX * level.TileWidth;
     let y = level.playerTileY * level.TileHeight - 20;
 
-    let index = level.won ? 1 : 0;
-
-    context.drawImage(assets[index], x, y, level.TileWidth, level.TileHeight);
+    context.drawImage(assets[level.playerAssetIndex], x, y, level.TileWidth, level.TileHeight);
 }
 
 
@@ -419,30 +443,14 @@ function load()
     // declare a level as shown below, 0 being start, 1 being non-walkable, 2 being walkable, 3 being end and 4 being a death tile
 
     levels.push(new Level([
-        [0, 2, 2, 2, 1, 1, 1, 3],
-        [1, 1, 2, 2, 2, 2, 2, 2],
-        [1, 1, 2, 2, 1, 2, 1, 1],
-        [1, 1, 2, 2, 1, 2, 2, 2],
-        [1, 1, 1, 1, 1, 2, 2, 2],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 2, 2, 2, 1, 1, 1, 3, 1],
+        [1, 1, 1, 2, 2, 4, 2, 2, 2, 1],
+        [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
+        [1, 1, 1, 2, 2, 1, 2, 2, 2, 1],
+        [1, 1, 1, 1, 1, 1, 2, 2, 2, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     ], 9));
-
-    levels.push(new Level([
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 2, 2, 2, 0, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    ], 6));
-
-    levels.push(new Level([
-        [2, 2, 2, 1, 2, 2, 2, 1],
-        [2, 1, 2, 2, 2, 1, 2, 1],
-        [2, 0, 1, 2, 1, 3, 2, 1],
-        [1, 1, 1, 2, 4, 2, 2, 2],
-        [1, 1, 1, 1, 1, 1, 2, 2],
-    ], 14));
 
     levels.push(new Level(randomMaze(10, 6), 20));
     levels.push(new Level(randomMaze(10, 6), 20));
