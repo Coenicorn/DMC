@@ -102,22 +102,13 @@ let startX, startY;
 
 let currentInstruction = null;
 
-const mouse = {
-    x: 0,
-    y: 0,
-    update: function (e) {
-        mouse.x = e.clientX;
-        mouse.y = e.clientY;   
-    }
-}
-
 // everything other than the camera uses generalized coordinates
 const camera = {
     x: 0,
     y: 0,
     toPlayer: function () {
-        let x = (width / 2 - playerX * tileSize - tileSize / 2 - camera.x) * 0.1;
-        let y = (height / 2 - playerY * tileSize - tileSize / 2 - camera.y) * 0.1;
+        let x = (width / 2 - playerX * tileSize - tileSize / 2 - camera.x) * 0.05;
+        let y = (height / 2 - playerY * tileSize - tileSize / 2 - camera.y) * 0.05;
 
         camera.x += x;
         camera.y += y;
@@ -331,12 +322,12 @@ function move(dir) {
 
 function breakRun() {
     clearInterval(running);
-    running = null;
+
+    setTimeout(resetPlayer, 1500);
 }
 
 function nextLevel() {
-    clearInterval(running);
-    running = null;
+    breakRun();
 
     // reset instruction
     currentInstruction = null;
@@ -348,6 +339,8 @@ function resetPlayer() {
 
     playerX = startX;
     playerY = startY;
+
+    running = null;
 }
 
 function setSpawn() {
@@ -400,25 +393,24 @@ function emitEvent(event /*expects an event object with a type and potential arg
     switch (event.type) {
         case "keyup":
             switch (event.key) {
-                case "Enter":
-                    runLevel();
-                    break;
                 case "ArrowUp":
                     currentInstruction = 0;
+                    runLevel();
                     break;
                 case "ArrowRight":
                     currentInstruction = 1;
+                    runLevel();
                     break;
                 case "ArrowDown":
                     currentInstruction = 2;
+                    runLevel();
                     break;
                 case "ArrowLeft":
                     currentInstruction = 3;
+                    runLevel();
                     break;
             }
             break;
-        case "mousemove":
-            mouse.update(event);
         case "steppedOn":
             // if I ever want to do anything with this in the future
             break;
@@ -431,7 +423,5 @@ function emitEvent(event /*expects an event object with a type and potential arg
 }
 
 addEventListener("keyup", emitEvent);
-addEventListener("mousemove", emitEvent);
-addEventListener("mouseup", emitEvent);
 
 onload = loadImages(load);
