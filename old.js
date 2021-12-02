@@ -95,12 +95,13 @@ let tileSize = 128;
 
 let running = null;
 // main loop speed in milliseconds
-let updateInterval = 300;
+let updateInterval = 200;
 
 let playerX, playerY, playerSpriteIndex = 0;
 let startX, startY;
 
-let currentInstruction = null;
+const instructions = [];
+let currentInstruction = 0;
 
 const mouse = {
     x: 0,
@@ -310,6 +311,25 @@ function loadLevel(layout) {
     return grid;
 }
 
+// adds a html image element to the gui if one of the buttons is pressed
+function addInstruction(state) {
+    if (!running) {
+        let element = document.createElement("img");
+        element.src = `assets/ui/${state}.png`;
+        element.id = "input";
+
+        document.getElementById("gui").appendChild(element);
+
+        instructions.push({ state: state, element: element });
+
+        element.onclick = function () {
+            document.getElementById("gui").removeChild(element);
+
+            instructions.splice(instructions.indexOf({ state: state, element: element }));
+        }
+    }
+}
+
 function move(dir) {
     // I want to implement move animations at some point but not rn honestly
 
@@ -338,8 +358,9 @@ function nextLevel() {
     clearInterval(running);
     running = null;
 
-    // reset instruction
-    currentInstruction = null;
+    // reset instructions
+    instructions = [];
+    currentInstruction = 0;
     levelGrid = loadLevel(randomLevel())
 }
 
@@ -356,16 +377,26 @@ function setSpawn() {
 }
 
 function runLevel() {
+    resetPlayer();
+    currentInstruction = 0;
+
     if (running == null) {
-        resetPlayer();
         running = setInterval(main, updateInterval);
     }
 
     function main() {
+        if (!instructions[currentInstruction]) {
+            clearInterval(running);
+            running = null;
 
-        move(currentInstruction);
+            return;
+        }
+
+        move(instructions[currentInstruction].state);
 
         levelGrid[playerY][playerX].steppedOn();
+
+        currentInstruction++;
     }
 }
 
@@ -404,16 +435,16 @@ function emitEvent(event /*expects an event object with a type and potential arg
                     runLevel();
                     break;
                 case "ArrowUp":
-                    currentInstruction = 0;
+                    addInstruction(0);
                     break;
                 case "ArrowRight":
-                    currentInstruction = 1;
+                    addInstruction(1);
                     break;
                 case "ArrowDown":
-                    currentInstruction = 2;
+                    addInstruction(2);
                     break;
                 case "ArrowLeft":
-                    currentInstruction = 3;
+                    addInstruction(3);
                     break;
             }
             break;

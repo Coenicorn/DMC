@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -28,7 +29,7 @@
             background-color: grey;
             width: 100%;
             height: 100%;
-            font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         #unmovable img {
@@ -62,38 +63,25 @@
             left: 5px;
             bottom: 0px;
         }
-
-        #green_arrow {
-            padding: 5px;
-            border-radius: 10px;
-
-            background-color: green;
-        }
     </style>
 </head>
+
 <body>
     <canvas id="GameScreen">
         Canvas not supported (ya dingus)
     </canvas>
     <canvas id="LevelCanvas" style="visibility: hidden"></canvas>
 
-    
+
     <div id="gui">
-        <img src="assets/ui/enter.png" alt="enter" onclick="onEvent({type:'keyup',key:'Enter'})">
+        <img src="assets/ui/enter.png" alt="enter" onclick="emitEvent({ type: 'keyup', key: 'Enter' })">
         <img src="assets/ui/0.png" alt="arrow down" id="unmovable" onclick="addInstruction(0)">
         <img src="assets/ui/3.png" alt="arrow left" id="unmovable" onclick="addInstruction(3)">
         <img src="assets/ui/1.png" alt="arrow right" id="unmovable" onclick="addInstruction(1)">
         <img src="assets/ui/2.png" alt="arrow up" id="unmovable" onclick="addInstruction(2)">
-        <br>
-        <img src="assets/ui/1.png" alt="run here" id="green_arrow">
-    </div>
-    
-
-    <div id="loadingScreen" onclick="emitEvent({ type: 'begin' })">
-        <h1>Best experienced with fullscreen</h1>
-        <br>
     </div>
 
     <script src="main.js"></script>
 </body>
+
 </html>
