@@ -92,10 +92,11 @@ let levelGrid;
 let levelWidth = 50, levelHeight = 50;
 
 let tileSize = 128;
+let levelSize = 10;
 
 let running = null;
 // main loop speed in milliseconds
-let updateInterval = 300;
+let updateInterval = 250;
 
 let playerX, playerY, playerSpriteIndex = 0;
 let startX, startY;
@@ -161,10 +162,12 @@ function Tile(x, y, state) {
                 playerSpriteIndex = 1;
 
                 breakRun();
+                setTimeout(resetPlayer, 1500);
 
                 break;
             case tileValues.spike:
                 breakRun();
+                setTimeout(resetPlayer, 1500);
 
                 break;
         }
@@ -185,6 +188,7 @@ function randomLevel(w, h) {
 
         grid.push(tempGrid);
     }
+    let hasEnd = false;
 
     let startX = 1, startY = 1;
 
@@ -228,6 +232,11 @@ function randomLevel(w, h) {
 
             generate(next);
         } else if (tile.parent) {
+            if (!hasEnd) {
+                tile.state = tileValues.end;
+                hasEnd = true;
+            }
+
             generate(tile.parent);
         } else {
             gridToLayout();
@@ -322,16 +331,17 @@ function move(dir) {
 
 function breakRun() {
     clearInterval(running);
-
-    setTimeout(resetPlayer, 1500);
 }
 
 function nextLevel() {
     breakRun();
+    running = null;
 
     // reset instruction
     currentInstruction = null;
-    levelGrid = loadLevel(randomLevel())
+
+    levelSize++;
+    levelGrid = loadLevel(randomLevel(levelSize, levelSize));
 }
 
 function resetPlayer() {
@@ -380,7 +390,7 @@ function mainLoop() {
 }
 
 function load() {
-    levelGrid = loadLevel(randomLevel(50, 50));
+    levelGrid = loadLevel(randomLevel(10, 10));
 
     mainLoop();
 }
