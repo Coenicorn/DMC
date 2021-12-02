@@ -1,18 +1,3 @@
-// This project doesn't have a main loop, but instead renders based on events, pretty neat right?
-
-// ------------------------------------------------------------------------------
-// VARIABLE DECLERATIONS
-// ------------------------------------------------------------------------------
-
-const mouse = {x: 0, y: 0}
-const levels = [];
-
-let currentLevelIndex = 0;
-
-const updateInterval = 200;
-
-let running = false;
-
 // ------------------------------------------------------------------------------
 // RENDERING AND IMAGE LOADING
 // ------------------------------------------------------------------------------
@@ -20,14 +5,14 @@ let running = false;
 const canvas = document.getElementById("GameScreen");
 const context = canvas.getContext("2d");
 
+const levelCache = document.getElementById("LevelCanvas");
+const levelContext = levelCache.getContext("2d");
+
 const width = canvas.width = screen.width;
 const height = canvas.height = screen.height;
 
-const levelCache = new OffscreenCanvas(width, height);
-const levelContext = levelCache.getContext("2d");
 
-context.color = function(r, g, b, a = 1)
-{
+context.color = function (r, g, b, a = 1) {
     // if the input is rgba handle it accordingly
     if (g != undefined)
         context.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
@@ -36,45 +21,38 @@ context.color = function(r, g, b, a = 1)
         context.fillStyle = r;
 }
 
-context.background = function(r, g = r, b = r, a = 1)
-{
+context.background = function (r, g = r, b = r, a = 1) {
     context.color(r, g, b, a);
     context.fillRect(0, 0, width, height);
 }
 
-context.clear = function()
-{
+context.clear = function () {
     context.clearRect(0, 0, width, height);
 }
 
 // image loading function I got from stackoverflow lol, preeeetty smart stuff
 
 const imagePaths = [
-    "assets/character/player_neutral.png","assets/character/player_water.png", 
-    "assets/tiles/start.png", "assets/tiles/non_walkable_tile.png", "assets/tiles/walkable_tile1.png", "assets/tiles/walkable_tile2.png", "assets/tiles/walkable_tile3.png", "assets/tiles/end.png", "assets/tiles/death.png"
+    "assets/character/player_neutral.png", "assets/character/player_water.png",
+    "assets/tiles/start.png", "assets/tiles/end.png", "assets/tiles/non_walkable_tile.png", "assets/tiles/walkable_tile1.png", "assets/tiles/walkable_tile2.png", "assets/tiles/walkable_tile3.png", "assets/tiles/spikes_retracted.png", "assets/tiles/spikes_extended.png"
 ];
 const assets = [];
 
-function loadImages(callback)
-{
+function loadImages(callback) {
     let imagesLoading = imagePaths.length;
 
-    function onImageLoad()
-    {
+    function onImageLoad() {
         imagesLoading--;
 
-        if (!imagesLoading)
-        {
-            try{
+        if (!imagesLoading) {
+            try {
                 callback();
-            }catch(e){return}
+            } catch (e) { return }
         }
     }
 
-    function main()
-    {
-        for (let i = 0; i < imagePaths.length; i++)
-        {
+    function main() {
+        for (let i = 0; i < imagePaths.length; i++) {
             let t = new Image();
             t.src = imagePaths[i];
 
@@ -87,487 +65,319 @@ function loadImages(callback)
     main();
 }
 
-// level is rerendered whenever render() is called, you could cache it and just draw it once, but here it doesn't really matter unless your
-// level is really big
-function renderLevel(level)
-{
-    for (let i = 0; i < level.grid.length; i++)
-    {
-        for (let ii = 0; ii < level.grid[i].length; ii++)
-        {
-            let currentTile = level.grid[i][ii];
+function renderPlayer() {
+    let x = playerX * tileSize;
+    let y = playerY * tileSize - tileSize / 4;
 
-            context.drawImage(currentTile.asset, currentTile.x, currentTile.y, level.TileWidth, level.TileHeight);
-        }
-    }
+    context.drawImage(assets[playerSpriteIndex], camera.x + x, camera.y + y, tileSize, tileSize);
 }
 
-function renderPlayer(level)
-{
-    let x = level.playerX * level.TileWidth;
-    let y = level.playerY * level.TileHeight - 20;
-
-    context.drawImage(assets[level.playerAssetIndex], x, y, level.TileWidth, level.TileHeight);
-}
-
-
-function render()
-{
+function render() {
     context.imageSmoothingEnabled = false;
 
-    let level = levels[currentLevelIndex];
+    context.clear();
 
-    renderLevel(level);
+    // render the level on the current canvas, duh
+    context.drawImage(levelCache, camera.x, camera.y);
 
-    renderPlayer(level);
+    renderPlayer();
 }
 
 // ------------------------------------------------------------------------------
-// CLASSES AND OBJECTS BOIIIIIIIIIIIIII
+// VARIABLE DECLARATIONS
 // ------------------------------------------------------------------------------
 
-function addInstruction(dir)
-{
-    if (!running)
-    {
-        let t = document.createElement("img");
-        t.src = "assets/ui/"+dir+".png";
+let levelGrid;
 
-        t.id = "input";
+let tileSize = 128;
 
-        levels[currentLevelIndex].instructions.push({dir: dir, element: t});
+let running = false;
 
-        document.getElementById("gui").appendChild(t);
+let playerX, playerY, playerSpriteIndex = 0;
+let startX, startY;
 
-        t.onclick = function(){
-            document.getElementById("gui").removeChild(t);
+const instructions = [];
 
-            let level = levels[currentLevelIndex];
-
-            level.instructions.splice(level.instructions.indexOf({dir: dir, element: t}));
-        }
+const mouse = {
+    x: 0,
+    y: 0,
+    update: function (e) {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
     }
 }
 
-function Tile(x, y, state)
-{
+// everything other than the camera uses generalized coordinates
+const camera = {
+    x: 0,
+    y: 0
+}
+
+// Tile values: 0 = start, 1 = end, 2 = non-walkable, 3 = walkable, 4 = spikes
+const tileValues = {
+    start: 1,
+    end: 2,
+    noWalk: 3,
+    walk: 4,
+    spike: 5
+}
+
+function Tile(x, y, state) {
     this.x = x;
     this.y = y;
+
     this.state = state;
-    this.available = this.state == 1 ? false : true
-    this.asset = function()
-    {
-        switch (state)
-        {
+
+    // this is pretty much unavoidable being hardcoded by what I know
+    this.asset;
+    switch (this.state) {
+        case tileValues.start:
+            this.asset = assets[2];
+            break;
+        case tileValues.end:
+            this.asset = assets[3];
+            break;
+        case tileValues.noWalk:
+            this.asset = assets[4];
+            break;
+        case tileValues.walk:
+            let index = Math.floor(Math.random() * 3);
+            this.asset = assets[5 + index];
+            break;
+        case tileValues.spike:
+            this.asset = assets[8];
+            break;
+    }
+
+    this.steppedOn = function () {
+        switch (this.state) {
             case 0:
-                return assets[2];
 
+                break;
             case 1:
-                return assets[3];
 
+                break;
             case 2:
-                return assets[4 + Math.floor(Math.random() * 2)];
 
+                break;
             case 3:
-                return assets[7];
 
+                break;
             case 4:
-                return assets[8];
 
+                break;
         }
-    }();
-    this.action = function()
-    {
-        try
-        {
-            switch (this.state)
-            {
-                case 0:
-                    break;
 
-                case 1:
-                    running = false;
-
-                    levels[currentLevelIndex].playerAssetIndex = 1;
-                    render();
-
-                    setTimeout(resetPlayer, updateInterval);
-
-                    break;
-
-                case 3: 
-
-                    running = false;
-
-                    setTimeout(nextLevel, updateInterval);
-
-                    break;
-                case 4:
-                    running = false;
-                    setTimeout(resetPlayer, updateInterval);
-
-                    break;
-            }
-        }catch(e){}
+        emitEvent({ type: "step" });
     }
 }
 
-function Level(layout, maxInstructions){
-    this.TileWidth = width / layout[0].length;
-    this.TileHeight = height / layout.length;
+// ------------------------------------------------------------------------------
+// MAIN FUNCTIONS
+// ------------------------------------------------------------------------------
 
-    this.grid = [];
-    for (let i = 0; i < layout.length; i++)
-    {
-        let tt = [];
-        for (let ii = 0; ii < layout[i].length; ii++)
-        {
-            let x = ii * this.TileWidth, y = i * this.TileHeight, state;
-
-            // if the current tile is the start tile, do some funky stuff. Also, every level expects a start Tile, otherwise things break...
-            if (!layout[i][ii])
-            {
-                state = layout[i][ii];
-                
-                this.startTileX = ii;
-                this.startTileY = i;
-                this.playerTileX = this.startTileX;
-                this.playerTileY = this.startTileY;
-                this.playerX = this.playerTileX;
-                this.playerY = this.playerTileY;
-            }
-            else
-            {
-                state = layout[i][ii];
-            }
-
-            let tile = new Tile(x, y, state);
-
-            tt.push(tile);
+function randomLevel(w, h) {
+    let grid = [];
+    for (let y = 0; y < h; y++) {
+        let tempGrid = [];
+        for (let x = 0; x < w; x++) {
+            tempGrid.push({ x, y, state: tileValues.noWalk });
         }
 
-        this.grid.push(tt);
+        grid.push(tempGrid);
     }
 
-    if (this.startTileX == undefined)
-        throw new Error(`Error loading level, no start node defined`);
+    let startX = 1, startY = 1;
 
-    this.maxInstructions = maxInstructions;
-    this.instructions = [];
-    this.currentInstruction = 0;
-
-    this.won = false;
-    this.playerAssetIndex = 0;
-
-    this.move = function(direction, callback)
-    {
-        // fps-estimation, fpstimation, haha puns
-        let fpstimation = 20, displacement = 1 / fpstimation, i = 0, self = this, xFinal, yFinal;
-
-        function moveAnimation(x, y)
-        {
-            if (x != undefined && y != undefined)
-            {
-                xFinal = x;
-                yFinal = y;
-            }
-
-            self.playerY += yFinal * displacement;
-            self.playerX += xFinal * displacement;
-
-            i++;
-            if (i <= fpstimation)
-                requestAnimationFrame(moveAnimation);
-            else
-            {
-                self.playerX = self.playerTileX;
-                self.playerY = self.playerTileY;
-
-                callback();
-            }
-
-            render();
-        }
-
-        try
-        {
-            switch (direction)
-            {
-                case 0:
-                    if (this.grid[this.playerTileY+1][this.playerTileX])
-                        this.playerTileY++;
-                        moveAnimation(0, 1);
-                    break;
-                case 1:
-                    if (this.grid[this.playerTileY][this.playerTileX+1])
-                        this.playerTileX++;
-                        moveAnimation(1, 0);
-                    break;
-                case 2:
-                    if (this.grid[this.playerTileY-1][this.playerTileX])
-                        this.playerTileY--;
-                        moveAnimation(0, -1);
-                    break;
-                case 3:
-                    if (this.grid[this.playerTileY][this.playerTileX-1])
-                        this.playerTileX--;
-                        moveAnimation(-1, 0);
-                    break;
-            }
-        // I have like three try-catch statements with different styles of programming, consistency!
-        }catch(e){}
-    }
-}
-
-// random level generation, quite proud of that one
-
-function randomMaze(w, h)
-{
-    let maze = [], level, hasEnd = false;
-    
-    for (let i = 0; i < h+1; i++)
-    {
-        let t = [];
-        for (let ii = 0; ii < w+1; ii++)
-        {
-            t.push({x: ii, y: i, state: 1, parent: null, loopedOver: false});
-        }
-        maze.push(t);
-    }
-
-    function hasNeighbours(tile)    
-    {
-        let neighbours = [];
-
+    function hasNeighbours(tile) {
         let x = tile.x;
         let y = tile.y;
 
-        let t1 = (maze[y+2]||[])[x] != undefined ? (maze[y+2]||[])[x] : {state:2};
-        let t2 = (maze[y-2]||[])[x] != undefined ? (maze[y-2]||[])[x] : {state:2};
-        let t3 = maze[y][x+2] != undefined ? (maze[y]||[])[x+2] : {state:2};
-        let t4 = maze[y][x-2] != undefined ? (maze[y]||[])[x-2] : {state:2};
+        let n1 = (grid[y + 2] || [])[x] != undefined ? (grid[y + 2] || [])[x] : { state: tileValues.walk };
+        let n2 = (grid[y] || [])[x + 2] != undefined ? (grid[y] || [])[x + 2] : { state: tileValues.walk };
+        let n3 = (grid[y - 2] || [])[x] != undefined ? (grid[y - 2] || [])[x] : { state: tileValues.walk };
+        let n4 = (grid[y] || [])[x - 2] != undefined ? (grid[y] || [])[x - 2] : { state: tileValues.walk };
 
-        if (t1.state == 1)
-            neighbours.push(t1);
-        if (t2.state == 1)
-            neighbours.push(t2);
-        if (t3.state == 1)
-            neighbours.push(t3);
-        if (t4.state == 1)
-            neighbours.push(t4);
+        let neighbours = [];
 
-        return neighbours;
+        if (n1.state == tileValues.noWalk)
+            neighbours.push(n1);
+        if (n2.state == tileValues.noWalk)
+            neighbours.push(n2);
+        if (n3.state == tileValues.noWalk)
+            neighbours.push(n3);
+        if (n4.state == tileValues.noWalk)
+            neighbours.push(n4);
+
+        if (neighbours.length)
+            return neighbours;
     }
 
-    function generate(tile)
-    {
-        if (tile.state != 3)
-            tile.state = 2;
+    function generate(tile) {
+        tile.state = tileValues.walk;
 
         let neighbours = hasNeighbours(tile);
 
-        if (neighbours.length)
-
-        {
+        if (neighbours) {
             let next = neighbours[Math.floor(Math.random() * neighbours.length)];
 
             next.parent = tile;
 
             let betweenX = (tile.x + next.x) / 2;
             let betweenY = (tile.y + next.y) / 2;
-            maze[betweenY][betweenX].state = 2;
+            grid[betweenY][betweenX].state = tileValues.walk;
 
             generate(next);
-        }
-        else if (tile.parent)
-        {
-            if (!hasEnd)
-                tile.state = 3;
-                hasEnd = true;
-
+        } else if (tile.parent) {
             generate(tile.parent);
-        }
-        else
-        {
-            mazeToLevel();
+        } else {
+            gridToLayout();
+
+            return;
         }
     }
 
-    function mazeToLevel()
-    {
-        level = [];
-        for (let i = 0; i < maze.length; i++)
-        {
-            let level_temp = [];
-            for (let ii = 0; ii < maze[i].length; ii++)
-            {
-                let t = maze[i][ii].state;
+    function gridToLayout() {
+        let layout = [];
 
-                level_temp.push(t);
+        for (let y = 0; y < grid.length; y++) {
+            let tempLayout = [];
+
+            for (let x = 0; x < grid[y].length; x++) {
+                let state = grid[y][x].state;
+
+                tempLayout.push(state);
             }
-            level.push(level_temp);
+
+            layout.push(tempLayout);
         }
-        level[1][1] = 0;
+
+        layout[startX][startY] = tileValues.start;
+
+        grid = layout;
     }
 
-    generate(maze[1][1]);
+    generate(grid[startX][startY]);
 
-    return level;
+    return grid;
 }
 
-// ------------------------------------------------------------------------------
-// MAIN
-// ------------------------------------------------------------------------------
+function loadLevel(layout) {
+    // set the width and height of the canvas
+    levelCache.width = layout[0].length * tileSize;
+    levelCache.height = layout.length * tileSize;
 
-function runLevel()
-{
-    resetLevel();
+    levelContext.imageSmoothingEnabled = false;
+
+    // loop through grid and check for start tile
+    let grid = [];
+    for (let y = 0, l1 = layout.length; y < l1; y++) {
+        let tempGrid = [];
+
+        for (let x = 0, l2 = layout[y].length; x < l2; x++) {
+            let tileState = layout[y][x];
+
+            if (tileState == tileValues.start) {
+                startX = x;
+                startY = y;
+            }
+
+            let tile = new Tile(x, y, tileState);
+
+            tempGrid.push(tile);
+
+            levelContext.drawImage(tile.asset, tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
+        }
+
+        grid.push(tempGrid);
+    }
+
+    if (startX == undefined || startY == undefined) {
+        throw new Error("Level initialization error, no start tile defined");
+    }
+
     resetPlayer();
 
-    running = true;
+    return grid;
+}
 
-    let level = levels[currentLevelIndex];
-    let instruction;
+// adds a html image element to the gui if one of the buttons is pressed
+function addInstruction(state) {
+    if (!running) {
+        let element = document.createElement("img");
+        element.src = `assets/ui/${state}.png`;
+        element.id = "input";
 
-    function main()
-    {
-        if (running)
-        {
-            instruction = level.instructions[level.currentInstruction];
+        document.getElementById("gui").appendChild(element);
 
-            if (!instruction && !levels[currentLevelIndex].won)
-            {
-                running = false;
-                resetPlayer();
+        instructions.push({ state: state, element: element });
 
-                return;
-            }
+        element.onclick = function () {
+            document.getElementById("gui").removeChild(element);
 
-            level.currentInstruction++;
-
-            level.move(instruction.dir, runMain);
+            instructions.splice(instructions.indexOf({ state: state, element: element }));
         }
     }
+}
 
-    function runMain()
-    {
-        level.grid[level.playerTileY][level.playerTileX].action(instruction);
+function resetPlayer() {
+    playerX = startX;
+    playerY = startY;
+}
 
-        render();
+function resetLevel() {
 
-        main();
-    }
+}
 
-    main();
+function runLevel() {
+    resetPlayer();
+    resetLevel();
+}
+
+// if I every want animations I'll have to implement a main loop, but not rn, too much work
+
+function load() {
+    levelGrid = loadLevel(randomLevel(100, 100));
+
+    emitEvent({ type: "load" });
 }
 
 // ------------------------------------------------------------------------------
-// RESET FUNCTIONS
+// EVENT SYSTEM
 // ------------------------------------------------------------------------------
 
-function nextLevel()
-{
-    for (let i in levels[currentLevelIndex].instructions)
-    {
-        document.getElementById("gui").removeChild(levels[currentLevelIndex].instructions[i].element)
+function emitEvent(event /*expects an event object with a type and potential arguments*/) {
+    switch (event.type) {
+        case "keyup":
+            switch (event.key) {
+                case "Enter":
+                    run();
+                    break;
+                case "ArrowUp":
+                    addInstruction(0);
+                    break;
+                case "ArrowRight":
+                    addInstruction(1);
+                    break;
+                case "ArrowDown":
+                    addInstruction(2);
+                    break;
+                case "ArrowLeft":
+                    addInstruction(3);
+                    break;
+            }
+            break;
+        case "step":
+            // if I ever want to do anything with this in the future
+            break;
+        case "begin":
+            document.getElementById("loadingScreen").style.visibility = "hidden";
     }
-
-    if (!levels[currentLevelIndex+1])
-        levels.push(new Level(randomMaze(16, 10), 10));
-    
-    currentLevelIndex++;
 
     render();
 }
 
-function resetLevel()
-{
-    levels[currentLevelIndex].currentInstruction = 0;
-}
-
-function resetPlayer()
-{
-    running = false;
-    let level = levels[currentLevelIndex];
-
-    level.playerTileX = level.startTileX;
-    level.playerTileY = level.startTileY; 
-    level.playerX = level.startTileX;
-    level.playerY = level.startTileY; 
-    
-    level.playerAssetIndex = 0;
-}
-
-function load()
-{
-    // all da levels
-    // declare a level as shown below, 0 being start, 1 being non-walkable, 2 being walkable, 3 being end and 4 being a death tile
-
-    levels.push(new Level([
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 0, 2, 2, 2, 1, 1, 1, 3, 1],
-        [1, 1, 1, 2, 2, 4, 2, 2, 2, 1],
-        [1, 1, 1, 2, 2, 2, 2, 1, 1, 1],
-        [1, 1, 1, 2, 2, 1, 2, 2, 2, 1],
-        [1, 1, 1, 1, 1, 1, 2, 2, 2, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-    ], 9));
-
-    levels.push(new Level(randomMaze(10, 6), 10));
-    levels.push(new Level(randomMaze(10, 6), 10));
-    levels.push(new Level(randomMaze(10, 6), 10));
-    levels.push(new Level(randomMaze(10, 6), 10));
-    levels.push(new Level(randomMaze(12, 8), 10));
-    levels.push(new Level(randomMaze(12, 8), 10));
-    levels.push(new Level(randomMaze(12, 8), 10));
-    levels.push(new Level(randomMaze(12, 8), 10));
-    levels.push(new Level(randomMaze(14, 8), 10));
-    levels.push(new Level(randomMaze(14, 8), 10));
-    levels.push(new Level(randomMaze(14, 8), 10));
-
-}
-
-function onEvent(event)
-{
-    try{
-        let type = event.type;
-        switch (type)
-        {
-            case "keyup":
-                
-                switch (event.key)
-                {
-                    case "Enter":
-                        if (!levels[currentLevelIndex].won)
-                            runLevel(levels[currentLevelIndex]);
-                        break;
-                    case "ArrowRight":
-                        addInstruction(1);
-                        break;
-                    case "ArrowLeft":
-                        addInstruction(3);
-                        break;
-                    case "ArrowUp":
-                        addInstruction(2);
-                        break;
-                    case "ArrowDown":
-                        addInstruction(0);
-                        break;
-                }
-        }
-    }catch(e){}
-
-    try {
-        render();
-    }catch(e){}
-}   
-
-addEventListener("mousemove", (e)=>{
-    mouse.x = e.clientX;
-    mouse.y = e.clientY;
-});
-addEventListener("mouseup", onEvent);
-addEventListener("keyup", onEvent);
-
+addEventListener("keyup", emitEvent);
+addEventListener("mousemove", mouse.update);
 
 onload = loadImages(load);

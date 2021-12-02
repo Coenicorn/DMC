@@ -17,6 +17,7 @@
             top: 0;
             left: 0;
             z-index: -1;
+            background-color: #40c4ff;
         }
 
         #loadingScreen {
@@ -74,7 +75,9 @@
     <canvas id="GameScreen">
         Canvas not supported (ya dingus)
     </canvas>
+    <canvas id="LevelCanvas" style="visibility: hidden"></canvas>
 
+    
     <div id="gui">
         <img src="assets/ui/enter.png" alt="enter" onclick="onEvent({type:'keyup',key:'Enter'})">
         <img src="assets/ui/0.png" alt="arrow down" id="unmovable" onclick="addInstruction(0)">
@@ -86,9 +89,9 @@
     </div>
     
 
-    <div id="loadingScreen" onclick="document.getElementById('loadingScreen').style.visibility = 'hidden'">
+    <div id="loadingScreen" onclick="emitEvent({ type: 'begin' })">
         <h1>Best experienced with fullscreen</h1>
-        <h1>Click to begin</h2>
+        <br>
     </div>
 
     <script src="main.js"></script>

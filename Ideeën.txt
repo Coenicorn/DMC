@@ -1,5 +1,0 @@
- - Pathfinding algorithm to place end in farthest position on level generation
- - Too many instructions split up on two rows
- - Name? Maze Craze
- - Fall in water on wrong instructions
- - Broken rocks cause player to fall and die (thx julian)
