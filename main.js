@@ -107,9 +107,10 @@ let currentInstruction = null;
 const camera = {
     x: 0,
     y: 0,
+    speed: 0.05,
     toPlayer: function () {
-        let x = (width / 2 - playerX * tileSize - tileSize / 2 - camera.x) * 0.05;
-        let y = (height / 2 - playerY * tileSize - tileSize / 2 - camera.y) * 0.05;
+        let x = (width / 2 - playerX * tileSize - tileSize / 2 - camera.x) * camera.speed;
+        let y = (height / 2 - playerY * tileSize - tileSize / 2 - camera.y) * camera.speed;
 
         camera.x += x;
         camera.y += y;
@@ -180,9 +181,9 @@ function Tile(x, y, state) {
 
 function randomLevel(w, h) {
     let grid = [];
-    for (let y = 0; y < h; y++) {
+    for (let y = 0; y < h+1; y++) {
         let tempGrid = [];
-        for (let x = 0; x < w; x++) {
+        for (let x = 0; x < w+1; x++) {
             tempGrid.push({ x, y, state: tileValues.noWalk });
         }
 
@@ -340,7 +341,7 @@ function nextLevel() {
     // reset instruction
     currentInstruction = null;
 
-    levelSize++;
+    levelSize += 2;
     levelGrid = loadLevel(randomLevel(levelSize, levelSize));
 }
 
