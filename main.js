@@ -34,26 +34,15 @@ context.clear = function () {
 
 const imagePaths = [
     "assets/character/player_neutral.png", "assets/character/player_water.png",
-    "assets/tiles/start.png", "assets/tiles/end.png", "assets/tiles/water/non_walkable_tile.png", "assets/tiles/walkable_tile1.png", "assets/tiles/walkable_tile2.png", "assets/tiles/walkable_tile3.png", 
-    "assets/tiles/spikes_retracted.png", "assets/tiles/spikes_extended.png", "assets/tiles/cracked.png", "assets/tiles/broken.png"
+    "assets/tiles/start.png", "assets/tiles/end.png", "assets/tiles/walk1.png", "assets/tiles/walk2.png", "assets/tiles/walk3.png",
+    "assets/tiles/spikes.png", "assets/tiles/spikes_extended.png", "assets/tiles/cracked.png", "assets/tiles/broken.png",
+    "assets/tiles/water_tile.png", "assets/tiles/badshit_tile.png", "assets/tiles/checkpoint.png"
 ];
-
-const tileIndexes = {
-    start: 2,
-    end: 3,
-    noWalk: 4,
-    walk: 5,
-    spike: 8,
-    spike_extend: 9,
-    cracked: 10,
-    broken: 11,
-    
-}
 
 const assets = [];
 
 function loadImages(callback) {
-    let imagesLoading = imagePaths.length;
+    let imagesLoading = imagePaths.length - 1;
 
     function onImageLoad() {
         imagesLoading--;
@@ -79,11 +68,40 @@ function loadImages(callback) {
     main();
 }
 
+function assetFromState(state) {
+    let t;
+
+    switch (state) {
+        case "walk":
+            t = `assets/tiles/${state + Math.ceil(Math.random() * 2)}.png`;
+            break;
+
+        case "on_tile":
+            t = `assets/tiles/${currentTheme}_tile.png`;
+            break;
+
+        default:
+            t = `assets/tiles/${state}.png`;
+            break;
+    }
+    
+    return assets[imagePaths.indexOf(t)];
+}
+
 function renderPlayer() {
     let x = playerX * tileSize;
     let y = playerY * tileSize - tileSize / 4;
 
     context.drawImage(assets[playerSpriteIndex], camera.x + x, camera.y + y, tileSize, tileSize);
+}
+
+function updateTileSprite(tile) {
+    let x = tile.x * tileSize;
+    let y = tile.y * tileSize;
+
+    levelContext.clearRect(x, y, tileSize, tileSize);
+
+    levelContext.drawImage(tile.asset, x, y, tileSize, tileSize);
 }
 
 function render() {
@@ -104,19 +122,26 @@ function render() {
 let levelGrid;
 // width and height of the level grid, no real units
 let levelWidth = 50, levelHeight = 50;
-const animationTiles = [];
 
 let tileSize = 112;
 let levelSize = 10;
 
 let running = null;
-// main loop speed in milliseconds
-let updateInterval = 230;
+// timers in milliseconds
+const updateInterval = 250;
+const deathTimer = 2000;
+
+// let currentTheme = "badshit";
+let currentTheme = "water";
 
 let playerX, playerY, playerSpriteIndex = 0;
 let startX, startY;
 
 let currentInstruction = null;
+
+const checkpointInterval = 15;
+
+let focussed = true;
 
 // everything other than the camera uses generalized coordinates
 const camera = {
@@ -132,71 +157,16 @@ const camera = {
     }
 }
 
-// Tile values: 0 = start, 1 = end, 2 = non-walkable, 3 = walkable, 4 = spikes
-const tileValues = {
-    start: 1,
-    end: 2,
-    noWalk: 3,
-    walk: 4,
-    spike: 5,
-    cracked: 6
-}
-
 function Tile(x, y, state) {
     this.x = x;
     this.y = y;
 
     this.state = state;
 
-    // this is pretty much unavoidable being hardcoded by what I know
-    this.asset;
-    switch (this.state) {
-        case tileValues.start:
-            this.asset = assets[tileIndexes.start];
-            break;
-        case tileValues.end:
-            this.asset = assets[tileIndexes.end];
-            break;
-        case tileValues.noWalk:
-            this.asset = assets[tileIndexes.noWalk];
-            break;
-        case tileValues.walk:
-            let index = Math.floor(Math.random() * 3);
-            this.asset = assets[tileIndexes.walk + index];
-            break;
-        case tileValues.spike:
-            this.asset = assets[tileIndexes.spike];
-            break;
-        case tileValues.cracked:
-            this.asset = assets[tileIndexes.cracked];
-    }
-
-    this.steppedOn = function () {
-        switch (this.state) {
-            case tileValues.end:
-                nextLevel();
-
-                break;
-            case tileValues.noWalk:
-                playerSpriteIndex = 1;
-
-                breakRun();
-                setTimeout(resetPlayer, 1500);
-
-                break;
-            case tileValues.spike:
-                breakRun();
-                setTimeout(resetPlayer, 1500);
-
-                break;
-
-            case tileValues.cracked:
-                this.asset = tileIndexes.broken;
-
-                break;
-        }
-    }
+    this.asset = assetFromState(this.state);
 }
+
+const badTiles = ["cracked","cracked","spikes","nowalk"]
 
 // ------------------------------------------------------------------------------
 // MAIN FUNCTIONS
@@ -207,15 +177,13 @@ function randomLevel(w, h) {
     for (let y = 0; y < h + 1; y++) {
         let tempGrid = [];
         for (let x = 0; x < w + 1; x++) {
-            tempGrid.push({ x, y, state: tileValues.noWalk });
+            let tile = badTiles[Math.floor(Math.random() * badTiles.length)];
+
+            tempGrid.push({ x, y, state: tile });
         }
 
         grid.push(tempGrid);
     }
-    let hasEnd = false;
-
-    let maxSteps = w * h / 4;
-    let steps = 0;
 
     let startX = 1, startY = 1;
 
@@ -223,20 +191,20 @@ function randomLevel(w, h) {
         let x = tile.x;
         let y = tile.y;
 
-        let n1 = (grid[y + 2] || [])[x] != undefined ? (grid[y + 2] || [])[x] : { state: tileValues.walk };
-        let n2 = (grid[y] || [])[x + 2] != undefined ? (grid[y] || [])[x + 2] : { state: tileValues.walk };
-        let n3 = (grid[y - 2] || [])[x] != undefined ? (grid[y - 2] || [])[x] : { state: tileValues.walk };
-        let n4 = (grid[y] || [])[x - 2] != undefined ? (grid[y] || [])[x - 2] : { state: tileValues.walk };
+        let n1 = (grid[y + 2] || [])[x] != undefined ? (grid[y + 2] || [])[x] : { state: "walk" };
+        let n2 = (grid[y] || [])[x + 2] != undefined ? (grid[y] || [])[x + 2] : { state: "walk" };
+        let n3 = (grid[y - 2] || [])[x] != undefined ? (grid[y - 2] || [])[x] : { state: "walk" };
+        let n4 = (grid[y] || [])[x - 2] != undefined ? (grid[y] || [])[x - 2] : { state: "walk" };
 
         let neighbours = [];
 
-        if (n1.state == tileValues.noWalk)
+        if (badTiles.indexOf(n1.state) > -1)
             neighbours.push(n1);
-        if (n2.state == tileValues.noWalk)
+        if (badTiles.indexOf(n2.state) > -1)
             neighbours.push(n2);
-        if (n3.state == tileValues.noWalk)
+        if (badTiles.indexOf(n3.state) > -1)
             neighbours.push(n3);
-        if (n4.state == tileValues.noWalk)
+        if (badTiles.indexOf(n4.state) > -1)
             neighbours.push(n4);
 
         if (neighbours.length)
@@ -244,10 +212,8 @@ function randomLevel(w, h) {
     }
 
     function generate(tile) {
-        if (tile.state == tileValues.noWalk)
-            steps++;
-
-        tile.state = tileValues.walk;
+        if (badTiles.indexOf(tile.state) != -1)
+            tile.state = "walk";
 
         let neighbours = hasNeighbours(tile);
 
@@ -258,17 +224,14 @@ function randomLevel(w, h) {
 
             let betweenX = (tile.x + next.x) / 2;
             let betweenY = (tile.y + next.y) / 2;
-            grid[betweenY][betweenX].state = tileValues.walk;
+            grid[betweenY][betweenX].state = "walk";
 
             generate(next);
         } else if (tile.parent) {
-            // place end at the... end
-            if (steps == maxSteps && !hasEnd) {
-                tile.state = tileValues.end;
-                hasEnd = true;
-            }
 
             generate(tile.parent);
+
+            return;
         } else {
             gridToLayout();
 
@@ -291,7 +254,7 @@ function randomLevel(w, h) {
             layout.push(tempLayout);
         }
 
-        layout[startX][startY] = tileValues.start;
+        layout[startX][startY] = "start";
 
         grid = layout;
     }
@@ -316,7 +279,7 @@ function loadLevel(layout) {
         for (let x = 0, l2 = layout[y].length; x < l2; x++) {
             let tileState = layout[y][x];
 
-            if (tileState == tileValues.start) {
+            if (tileState == "start") {
                 startX = x;
                 startY = y;
             }
@@ -325,6 +288,9 @@ function loadLevel(layout) {
 
             tempGrid.push(tile);
 
+            if (tile.state == "nowalk") continue;
+
+            levelContext.drawImage(assetFromState("on_tile"), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
             levelContext.drawImage(tile.asset, tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
         }
 
@@ -339,6 +305,44 @@ function loadLevel(layout) {
     camera.toPlayer();
 
     return grid;
+}
+
+function handleTile(tile) {
+    try {
+        let ded = false;
+
+        switch (tile.state) {
+            case "nowalk":
+                ded = true;
+                playerSpriteIndex = 1;
+
+                break;
+            case "cracked":
+                ded = true;
+                playerSpriteIndex = 1;
+                
+                tile.asset = assetFromState("broken");
+                updateTileSprite(tile);
+
+                break;
+            case "spikes":
+                ded = true;
+                playerSpriteIndex = 1;
+                
+                tile.asset = assetFromState("spikes_extended");
+                updateTileSprite(tile);
+        }
+        
+        if (ded) {
+            stopDaWalk();
+            setTimeout(resetPlayer, deathTimer);
+        }
+    } catch(e) {
+        stopDaWalk();
+        playerSpriteIndex = 1;
+
+        setTimeout(resetPlayer, deathTimer);
+    }
 }
 
 function move(dir) {
@@ -360,19 +364,9 @@ function move(dir) {
     }
 }
 
-function breakRun() {
+function stopDaWalk() {
     clearInterval(running);
-}
-
-function nextLevel() {
-    breakRun();
     running = null;
-
-    // reset instruction
-    currentInstruction = null;
-
-    levelSize += 2;
-    levelGrid = loadLevel(randomLevel(levelSize, levelSize));
 }
 
 function resetPlayer() {
@@ -380,8 +374,15 @@ function resetPlayer() {
 
     playerX = startX;
     playerY = startY;
+}
 
-    running = null;
+function nextLevel() {
+    currentInstruction = null;
+
+    levelSize += 1;
+    levelGrid = loadLevel(randomLevel(levelSize, levelSize));
+
+    killPlayer();
 }
 
 function setSpawn() {
@@ -391,6 +392,7 @@ function setSpawn() {
 
 function runLevel() {
     if (running == null) {
+        stopDaWalk();
         resetPlayer();
         running = setInterval(main, updateInterval);
     }
@@ -399,23 +401,23 @@ function runLevel() {
 
         move(currentInstruction);
 
-        levelGrid[playerY][playerX].steppedOn();
+        handleTile((levelGrid[playerY]||[])[playerX]);
     }
 }
 
-let desired = 60, fps = 1000 / 60, dt = 0, last = Date.now();
+let desired = 60, fps = 1000 / desired, dt = 0, last = Date.now();
 function mainLoop() {
+    // delta time game loop, remember for other projects lol
+
     let now = Date.now();
-    dt = now - last;
+    if (focussed)
+        dt = (now - last) / fps;
     last = now;
 
-    while (dt > 0) {
+    camera.speed = dt * 0.05;
+    camera.toPlayer();
 
-        camera.toPlayer();
-        render();
-
-        dt -= fps;
-    }
+    render();
 
     requestAnimationFrame(mainLoop);
 }
@@ -463,9 +465,8 @@ function emitEvent(event /*expects an event object with a type and potential arg
     }
 }
 
+addEventListener("blur", ()=>focussed=false); 
+addEventListener("focus", ()=>focussed=true); 
 addEventListener("keyup", emitEvent);
 
 onload = loadImages(load);
-
-
-
