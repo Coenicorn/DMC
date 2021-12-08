@@ -34,8 +34,22 @@ context.clear = function () {
 
 const imagePaths = [
     "assets/character/player_neutral.png", "assets/character/player_water.png",
-    "assets/tiles/start.png", "assets/tiles/end.png", "assets/tiles/non_walkable_tile.png", "assets/tiles/walkable_tile1.png", "assets/tiles/walkable_tile2.png", "assets/tiles/walkable_tile3.png", "assets/tiles/spikes_retracted.png", "assets/tiles/spikes_extended.png"
+    "assets/tiles/start.png", "assets/tiles/end.png", "assets/tiles/water/non_walkable_tile.png", "assets/tiles/walkable_tile1.png", "assets/tiles/walkable_tile2.png", "assets/tiles/walkable_tile3.png", 
+    "assets/tiles/spikes_retracted.png", "assets/tiles/spikes_extended.png", "assets/tiles/cracked.png", "assets/tiles/broken.png"
 ];
+
+const tileIndexes = {
+    start: 2,
+    end: 3,
+    noWalk: 4,
+    walk: 5,
+    spike: 8,
+    spike_extend: 9,
+    cracked: 10,
+    broken: 11,
+    
+}
+
 const assets = [];
 
 function loadImages(callback) {
@@ -90,13 +104,14 @@ function render() {
 let levelGrid;
 // width and height of the level grid, no real units
 let levelWidth = 50, levelHeight = 50;
+const animationTiles = [];
 
-let tileSize = 128;
+let tileSize = 112;
 let levelSize = 10;
 
 let running = null;
 // main loop speed in milliseconds
-let updateInterval = 250;
+let updateInterval = 230;
 
 let playerX, playerY, playerSpriteIndex = 0;
 let startX, startY;
@@ -123,7 +138,8 @@ const tileValues = {
     end: 2,
     noWalk: 3,
     walk: 4,
-    spike: 5
+    spike: 5,
+    cracked: 6
 }
 
 function Tile(x, y, state) {
@@ -136,21 +152,23 @@ function Tile(x, y, state) {
     this.asset;
     switch (this.state) {
         case tileValues.start:
-            this.asset = assets[2];
+            this.asset = assets[tileIndexes.start];
             break;
         case tileValues.end:
-            this.asset = assets[3];
+            this.asset = assets[tileIndexes.end];
             break;
         case tileValues.noWalk:
-            this.asset = assets[4];
+            this.asset = assets[tileIndexes.noWalk];
             break;
         case tileValues.walk:
             let index = Math.floor(Math.random() * 3);
-            this.asset = assets[5 + index];
+            this.asset = assets[tileIndexes.walk + index];
             break;
         case tileValues.spike:
-            this.asset = assets[8];
+            this.asset = assets[tileIndexes.spike];
             break;
+        case tileValues.cracked:
+            this.asset = assets[tileIndexes.cracked];
     }
 
     this.steppedOn = function () {
@@ -171,6 +189,11 @@ function Tile(x, y, state) {
                 setTimeout(resetPlayer, 1500);
 
                 break;
+
+            case tileValues.cracked:
+                this.asset = tileIndexes.broken;
+
+                break;
         }
     }
 }
@@ -181,15 +204,18 @@ function Tile(x, y, state) {
 
 function randomLevel(w, h) {
     let grid = [];
-    for (let y = 0; y < h+1; y++) {
+    for (let y = 0; y < h + 1; y++) {
         let tempGrid = [];
-        for (let x = 0; x < w+1; x++) {
+        for (let x = 0; x < w + 1; x++) {
             tempGrid.push({ x, y, state: tileValues.noWalk });
         }
 
         grid.push(tempGrid);
     }
     let hasEnd = false;
+
+    let maxSteps = w * h / 4;
+    let steps = 0;
 
     let startX = 1, startY = 1;
 
@@ -218,6 +244,9 @@ function randomLevel(w, h) {
     }
 
     function generate(tile) {
+        if (tile.state == tileValues.noWalk)
+            steps++;
+
         tile.state = tileValues.walk;
 
         let neighbours = hasNeighbours(tile);
@@ -233,7 +262,8 @@ function randomLevel(w, h) {
 
             generate(next);
         } else if (tile.parent) {
-            if (!hasEnd) {
+            // place end at the... end
+            if (steps == maxSteps && !hasEnd) {
                 tile.state = tileValues.end;
                 hasEnd = true;
             }
@@ -373,7 +403,7 @@ function runLevel() {
     }
 }
 
-let desired = 60, fps = 1000/60, dt = 0, last = Date.now();
+let desired = 60, fps = 1000 / 60, dt = 0, last = Date.now();
 function mainLoop() {
     let now = Date.now();
     dt = now - last;
@@ -391,7 +421,7 @@ function mainLoop() {
 }
 
 function load() {
-    levelGrid = loadLevel(randomLevel(10, 10));
+    levelGrid = loadLevel(randomLevel(levelSize, levelSize));
 
     mainLoop();
 }
@@ -436,3 +466,6 @@ function emitEvent(event /*expects an event object with a type and potential arg
 addEventListener("keyup", emitEvent);
 
 onload = loadImages(load);
+
+
+
