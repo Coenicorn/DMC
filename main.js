@@ -84,7 +84,7 @@ function assetFromState(state) {
             t = `assets/tiles/${state}.png`;
             break;
     }
-    
+
     return assets[imagePaths.indexOf(t)];
 }
 
@@ -166,7 +166,9 @@ function Tile(x, y, state) {
     this.asset = assetFromState(this.state);
 }
 
-const badTiles = ["cracked","cracked","spikes","nowalk"]
+const tiles = ["cracked", "spikes", "nowalk", "checkpoint", "end", "walk"];
+const badTiles = tiles.slice(0, 3);
+const goodTiles = tiles.slice(3, 6);
 
 // ------------------------------------------------------------------------------
 // MAIN FUNCTIONS
@@ -174,6 +176,7 @@ const badTiles = ["cracked","cracked","spikes","nowalk"]
 
 function randomLevel(w, h) {
     let grid = [];
+
     for (let y = 0; y < h + 1; y++) {
         let tempGrid = [];
         for (let x = 0; x < w + 1; x++) {
@@ -186,6 +189,7 @@ function randomLevel(w, h) {
     }
 
     let startX = 1, startY = 1;
+    let hasEnd = 0, steps = 0;
 
     function hasNeighbours(tile) {
         let x = tile.x;
@@ -320,7 +324,7 @@ function handleTile(tile) {
             case "cracked":
                 ded = true;
                 playerSpriteIndex = 1;
-                
+
                 tile.asset = assetFromState("broken");
                 updateTileSprite(tile);
 
@@ -328,16 +332,16 @@ function handleTile(tile) {
             case "spikes":
                 ded = true;
                 playerSpriteIndex = 1;
-                
+
                 tile.asset = assetFromState("spikes_extended");
                 updateTileSprite(tile);
         }
-        
+
         if (ded) {
             stopDaWalk();
             setTimeout(resetPlayer, deathTimer);
         }
-    } catch(e) {
+    } catch (e) {
         stopDaWalk();
         playerSpriteIndex = 1;
 
@@ -401,7 +405,7 @@ function runLevel() {
 
         move(currentInstruction);
 
-        handleTile((levelGrid[playerY]||[])[playerX]);
+        handleTile((levelGrid[playerY] || [])[playerX]);
     }
 }
 
@@ -465,8 +469,8 @@ function emitEvent(event /*expects an event object with a type and potential arg
     }
 }
 
-addEventListener("blur", ()=>focussed=false); 
-addEventListener("focus", ()=>focussed=true); 
+addEventListener("blur", () => focussed = false);
+addEventListener("focus", () => focussed = true);
 addEventListener("keyup", emitEvent);
 
 onload = loadImages(load);
