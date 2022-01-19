@@ -1,30 +1,31 @@
+/* 
+    Code copyrighted by... nobody, you're free to use this sh*t whenever you'd like
+    I couldn't care less what you do with this, it's shit anyway lol
+    Please just credit me, or not even me, the awesome people who made the art
+    for this game, it's seriously cool of them to have done so and it would
+    just be disrespectful to not do so, thanks!
+
+    Anyway, prepare for a shitty ride if you're just trying to look
+    through this code, it's pretty bad, I didn't spend that much time
+    on writing comments, sorry...
+*/
+
+
+
+
 // ------------------------------------------------------------------------------
 // RENDERING AND IMAGE LOADING
 // ------------------------------------------------------------------------------
 
+// reference to DOM canvas
 const canvas = document.getElementById("GameScreen");
 const context = canvas.getContext("2d");
 
-const levelCache = document.getElementById("LevelCanvas");
+const levelCache = document.createElement("canvas");
 const levelContext = levelCache.getContext("2d");
 
 const width = canvas.width = screen.width;
 const height = canvas.height = screen.height;
-
-
-context.color = function (r, g, b, a = 1) {
-    // if the input is rgba handle it accordingly
-    if (g != undefined)
-        context.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
-    // and if it aint, assume it's a string color input like "blue"
-    else
-        context.fillStyle = r;
-}
-
-context.background = function (r, g = r, b = r, a = 1) {
-    context.color(r, g, b, a);
-    context.fillRect(0, 0, width, height);
-}
 
 context.clear = function () {
     context.clearRect(0, 0, width, height);
@@ -33,15 +34,15 @@ context.clear = function () {
 // image loading function I got from stackoverflow lol, preeeetty smart stuff
 
 const imagePaths = [
-    "assets/character/player_neutral.png", "assets/character/player_water.png",
-    "assets/tiles/start.png", "assets/tiles/end.png", "assets/tiles/walk1.png", "assets/tiles/walk2.png", "assets/tiles/walk3.png",
-    "assets/tiles/spikes.png", "assets/tiles/spikes_extended.png", "assets/tiles/cracked.png", "assets/tiles/broken.png",
-    "assets/tiles/water_tile.png", "assets/tiles/badshit_tile.png", "assets/tiles/checkpoint.png"
+    "player_idle", "player_water",
+    "start", "end", "walk1", "walk2", "walk3",
+    "spikes", "spikes_extended", "cracked", "broken",
+    "water", "badshit_tile", "checkpoint"
 ];
 
 const assets = [];
 
-function loadImages(callback) {
+function loadImages() {
     let imagesLoading = imagePaths.length - 1;
 
     function onImageLoad() {
@@ -49,17 +50,18 @@ function loadImages(callback) {
 
         if (!imagesLoading) {
             try {
-                callback();
-            } catch (e) { return }
+                load();
+            } catch (e) { throw e }
         }
     }
 
     function main() {
         for (let i = 0; i < imagePaths.length; i++) {
-            let t = new Image();
-            t.src = imagePaths[i];
+            let t = new Image(), src = imagePaths[i];
+            t.src = "assets/" + src + ".png";
 
-            assets.push(t);
+            // this makes the array behave like an object, super useful
+            assets[src] = t;
 
             t.onload = onImageLoad;
         }
@@ -68,31 +70,19 @@ function loadImages(callback) {
     main();
 }
 
-function assetFromState(state) {
-    let t;
+// get a sprite from the assets array, doesn't raelly add anything atm
+function Pic(what) {
+    if (what === "walk") return assets[what + Math.round(Math.random() * 2 + 1)];
 
-    switch (state) {
-        case "walk":
-            t = `assets/tiles/${state + Math.ceil(Math.random() * 2)}.png`;
-            break;
-
-        case "on_tile":
-            t = `assets/tiles/${currentTheme}_tile.png`;
-            break;
-
-        default:
-            t = `assets/tiles/${state}.png`;
-            break;
-    }
-
-    return assets[imagePaths.indexOf(t)];
+    return assets[what];
 }
 
 function renderPlayer() {
-    let x = playerX * tileSize;
-    let y = playerY * tileSize - tileSize / 4;
+    // offset the player by a little bit to make it look like he's standing on the stones
+    let x = (playerX * tileSize) * camera.zoom;
+    let y = (playerY * tileSize - tileSize / 4) * camera.zoom;
 
-    context.drawImage(assets[playerSpriteIndex], camera.x + x, camera.y + y, tileSize, tileSize);
+    context.drawImage(Pic(playerSprite), camera.x + x, camera.y + y, tileSize * camera.zoom, tileSize * camera.zoom);
 }
 
 function updateTileSprite(tile) {
@@ -101,7 +91,7 @@ function updateTileSprite(tile) {
 
     levelContext.clearRect(x, y, tileSize, tileSize);
 
-    levelContext.drawImage(tile.asset, x, y, tileSize, tileSize);
+    levelContext.drawImage(Pic(tile.state), x, y, tileSize, tileSize);
 }
 
 function render() {
@@ -110,7 +100,7 @@ function render() {
     context.clear();
 
     // render the level on the current canvas, duh
-    context.drawImage(levelCache, camera.x, camera.y);
+    context.drawImage(levelCache, camera.x, camera.y, levelCache.width * camera.zoom, levelCache.height * camera.zoom);
 
     renderPlayer();
 }
@@ -120,10 +110,9 @@ function render() {
 // ------------------------------------------------------------------------------
 
 let levelGrid;
-// width and height of the level grid, no real units
-let levelWidth = 50, levelHeight = 50;
 
-let tileSize = 112;
+// tileSize shouldn't change... like, ever
+let tileSize = 64;
 let levelSize = 10;
 
 let running = null;
@@ -131,15 +120,12 @@ let running = null;
 const updateInterval = 250;
 const deathTimer = 2000;
 
-// let currentTheme = "badshit";
 let currentTheme = "water";
 
-let playerX, playerY, playerSpriteIndex = 0;
+let playerX, playerY, playerSprite = "player_idle";
 let startX, startY;
 
-let currentInstruction = null;
-
-const checkpointInterval = 15;
+let currentInstruction = 0;
 
 let focussed = true;
 
@@ -148,12 +134,24 @@ const camera = {
     x: 0,
     y: 0,
     speed: 0.05,
-    toPlayer: function () {
-        let x = (width / 2 - playerX * tileSize - tileSize / 2 - camera.x) * camera.speed;
-        let y = (height / 2 - playerY * tileSize - tileSize / 2 - camera.y) * camera.speed;
+    zoom: 1.5,
+    busy: false,
+    toPlayer: function (busy) {
+        if (camera.busy && !busy) return;
+
+        camera.busy = true;
+
+        // get vectors to the player from the camera
+        let x = (width / 2 - playerX * tileSize * camera.zoom - tileSize / 2 - camera.x) * camera.speed;
+        let y = (height / 2 - playerY * tileSize * camera.zoom - tileSize / 2 - camera.y) * camera.speed;
 
         camera.x += x;
         camera.y += y;
+
+        if (Math.hypot(playerY * tileSize * camera.zoom - (height / 2 - camera.y - tileSize / 2), playerX * tileSize * camera.zoom - (width / 2 - camera.x - tileSize / 2)) > 5) requestAnimationFrame(()=>{
+            camera.toPlayer(true);
+        });
+        else camera.busy = false;
     }
 }
 
@@ -162,8 +160,6 @@ function Tile(x, y, state) {
     this.y = y;
 
     this.state = state;
-
-    this.asset = assetFromState(this.state);
 }
 
 const tiles = ["cracked", "spikes", "nowalk", "checkpoint", "end", "walk"];
@@ -174,12 +170,27 @@ const goodTiles = tiles.slice(3, 6);
 // MAIN FUNCTIONS
 // ------------------------------------------------------------------------------
 
+/*
+    Maze generation logic:
+    step 1: Get the neighbouring tiles that aren't walkable
+    step 2: If the list is empty, backtrack
+    step 3: Else, pick a random tile from this list to repeat this process on
+    step 4: If the 
+*/
+
+// random level generation code
 function randomLevel(w, h) {
     let grid = [];
 
+    // set starting point\
+    startX = 1;
+    startY = 1;
+
+    // loop through grid and random non-walkable tiles
     for (let y = 0; y < h + 1; y++) {
         let tempGrid = [];
         for (let x = 0; x < w + 1; x++) {
+            // random tile from bad tiles array
             let tile = badTiles[Math.floor(Math.random() * badTiles.length)];
 
             tempGrid.push({ x, y, state: tile });
@@ -187,9 +198,6 @@ function randomLevel(w, h) {
 
         grid.push(tempGrid);
     }
-
-    let startX = 1, startY = 1;
-    let hasEnd = 0, steps = 0;
 
     function hasNeighbours(tile) {
         let x = tile.x;
@@ -202,148 +210,161 @@ function randomLevel(w, h) {
 
         let neighbours = [];
 
-        if (badTiles.indexOf(n1.state) > -1)
+        if (badTiles.includes(n1.state))
             neighbours.push(n1);
-        if (badTiles.indexOf(n2.state) > -1)
+        if (badTiles.includes(n2.state))
             neighbours.push(n2);
-        if (badTiles.indexOf(n3.state) > -1)
+        if (badTiles.includes(n3.state))
             neighbours.push(n3);
-        if (badTiles.indexOf(n4.state) > -1)
+        if (badTiles.includes(n4.state))
             neighbours.push(n4);
 
         if (neighbours.length)
             return neighbours;
     }
 
-    function generate(tile) {
-        if (badTiles.indexOf(tile.state) != -1)
-            tile.state = "walk";
+    function generateLayout(tile) {
+        // set current tile to walkable
+        tile.state = "walk";
 
+        // get neighbours
         let neighbours = hasNeighbours(tile);
 
+        // declare next
+        let next;
+
         if (neighbours) {
-            let next = neighbours[Math.floor(Math.random() * neighbours.length)];
+            // pick a random neighbour
+            next = neighbours[Math.floor(Math.random() * neighbours.length)];
 
             next.parent = tile;
 
+            // make the tile in between current and neighbour walkable
             let betweenX = (tile.x + next.x) / 2;
             let betweenY = (tile.y + next.y) / 2;
             grid[betweenY][betweenX].state = "walk";
+        }
+        
+        // if there are no valid neighbours, backtrack
+        if (tile.parent && !next) next = tile.parent;
 
-            generate(next);
-        } else if (tile.parent) {
-
-            generate(tile.parent);
-
-            return;
+        // check for neighbour
+        if (next) {
+            generateLayout(next);
         } else {
-            gridToLayout();
-
-            return;
+            generateSpecial();
         }
     }
 
-    function gridToLayout() {
-        let layout = [];
+    // generates start, end and checkpoints
+    function generateSpecial() {
+        // traverse current grid and look for farthest point from the player
+        let dstHigh, highTile;
+
+        for (let x = 0; x < grid.length; x++) {
+            for (let y = 0; y < grid[x].length; y++) {
+                let current = grid[x][y];
+
+                if (current.state != "walk") continue;
+
+                let dst = Math.abs(current.x - startX) + Math.abs(current.y - startY);
+
+                if (!dstHigh || dstHigh < dst) {
+                    dstHigh = dst;
+                    highTile = current;
+                }
+            }
+        }
+
+        // set the tile farthest away to the end
+        highTile.state = "end";
+        
+        // set start
+        grid[startX][startY].state = "start";
+
+        loadLevel();
+    }
+
+    // convert the grid to valid tiles
+    function loadLevel() {
+        // set the width and height of the canvas
+        levelCache.width = grid[0].length * tileSize;
+        levelCache.height = grid.length * tileSize;
+    
+        levelContext.imageSmoothingEnabled = false;
 
         for (let y = 0; y < grid.length; y++) {
-            let tempLayout = [];
-
             for (let x = 0; x < grid[y].length; x++) {
-                let state = grid[y][x].state;
+                let tile = new Tile(x, y, grid[y][x].state);
+                grid[y][x] = tile;
 
-                tempLayout.push(state);
+                if (tile.state === "start") {
+                    startX = tile.x;
+                    startY = tile.y;
+                }
+
+                if (tile.state === "nowalk") continue;
+
+                levelContext.drawImage(Pic(currentTheme), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
+                levelContext.drawImage(Pic(tile.state), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
             }
-
-            layout.push(tempLayout);
         }
 
-        layout[startX][startY] = "start";
+        if (startX == undefined || startY == undefined) {
+            throw new Error("Level initialization error, no start tile defined");
+        }
 
-        grid = layout;
+        resetPlayer();
+        camera.toPlayer();
     }
 
-    generate(grid[startX][startY]);
+    generateLayout(grid[startX][startY]);
 
     return grid;
 }
 
-function loadLevel(layout) {
-    // set the width and height of the canvas
-    levelCache.width = layout[0].length * tileSize;
-    levelCache.height = layout.length * tileSize;
-
-    levelContext.imageSmoothingEnabled = false;
-
-    // loop through grid and check for start tile
-    let grid = [];
-    for (let y = 0, l1 = layout.length; y < l1; y++) {
-        let tempGrid = [];
-
-        for (let x = 0, l2 = layout[y].length; x < l2; x++) {
-            let tileState = layout[y][x];
-
-            if (tileState == "start") {
-                startX = x;
-                startY = y;
-            }
-
-            let tile = new Tile(x, y, tileState);
-
-            tempGrid.push(tile);
-
-            if (tile.state == "nowalk") continue;
-
-            levelContext.drawImage(assetFromState("on_tile"), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
-            levelContext.drawImage(tile.asset, tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
-        }
-
-        grid.push(tempGrid);
-    }
-
-    if (startX == undefined || startY == undefined) {
-        throw new Error("Level initialization error, no start tile defined");
-    }
-
-    resetPlayer();
-    camera.toPlayer();
-
-    return grid;
-}
-
+// for when the player 
 function handleTile(tile) {
     try {
-        let ded = false;
-
         switch (tile.state) {
+            // not on a tile
             case "nowalk":
-                ded = true;
-                playerSpriteIndex = 1;
+                killPlayer("nowalk");
 
                 break;
+            
             case "cracked":
-                ded = true;
-                playerSpriteIndex = 1;
+                killPlayer("nowalk");
 
-                tile.asset = assetFromState("broken");
+                tile.state = "broken";
                 updateTileSprite(tile);
+
+                break;
+            case "broken":
+                killPlayer("nowalk");
 
                 break;
             case "spikes":
-                ded = true;
-                playerSpriteIndex = 1;
+                killPlayer("spike");
 
-                tile.asset = assetFromState("spikes_extended");
+                tile.state = "spikes_extended";
                 updateTileSprite(tile);
+                break;
+            case "end":
+                stopDaWalk();
+                nextLevel();
+            
+            default:
+                return;
         }
 
-        if (ded) {
-            stopDaWalk();
-            setTimeout(resetPlayer, deathTimer);
-        }
-    } catch (e) {
         stopDaWalk();
-        playerSpriteIndex = 1;
+        setTimeout(resetPlayer, deathTimer);
+
+    } catch (e) {
+        // in case the player goes out of bounds
+        stopDaWalk();
+        killPlayer();
 
         setTimeout(resetPlayer, deathTimer);
     }
@@ -368,25 +389,33 @@ function move(dir) {
     }
 }
 
+function killPlayer(cause) {
+    // if (cause === "nowalk") playerSprite = "player_" + currentTheme;
+    // if (cause === "spike") playerSprite = "player_spike";
+    playerSprite = "player_" + currentTheme;
+}
+
 function stopDaWalk() {
     clearInterval(running);
     running = null;
 }
 
 function resetPlayer() {
-    playerSpriteIndex = 0;
+    playerSprite = "player_idle";
 
     playerX = startX;
     playerY = startY;
+
+    camera.toPlayer();
 }
 
 function nextLevel() {
-    currentInstruction = null;
+    currentInstruction = 0;
 
     levelSize += 1;
-    levelGrid = loadLevel(randomLevel(levelSize, levelSize));
+    levelGrid = randomLevel(levelSize, levelSize);
 
-    killPlayer();
+    resetPlayer();
 }
 
 function setSpawn() {
@@ -395,7 +424,8 @@ function setSpawn() {
 }
 
 function runLevel() {
-    if (running == null) {
+    // check for player sprite because otherwise you can instantly restart
+    if (running == null && playerSprite == "player_idle") {
         stopDaWalk();
         resetPlayer();
         running = setInterval(main, updateInterval);
@@ -419,7 +449,7 @@ function mainLoop() {
     last = now;
 
     camera.speed = dt * 0.05;
-    camera.toPlayer();
+    if (running) camera.toPlayer();
 
     render();
 
@@ -427,50 +457,38 @@ function mainLoop() {
 }
 
 function load() {
-    levelGrid = loadLevel(randomLevel(levelSize, levelSize));
+    levelGrid = randomLevel(levelSize, levelSize);
 
     mainLoop();
 }
 
-// ------------------------------------------------------------------------------
-// EVENT HANDLING
-// ------------------------------------------------------------------------------
+function keyInput(event) {
+    switch (event.key) {
+        case "ArrowUp":
+            currentInstruction = 0;
+            runLevel();
 
-function emitEvent(event /*expects an event object with a type and potential arguments*/) {
-    switch (event.type) {
-        case "keyup":
-            switch (event.key) {
-                case "ArrowUp":
-                    currentInstruction = 0;
-                    runLevel();
-                    break;
-                case "ArrowRight":
-                    currentInstruction = 1;
-                    runLevel();
-                    break;
-                case "ArrowDown":
-                    currentInstruction = 2;
-                    runLevel();
-                    break;
-                case "ArrowLeft":
-                    currentInstruction = 3;
-                    runLevel();
-                    break;
-            }
             break;
-        case "steppedOn":
-            // if I ever want to do anything with this in the future
+        case "ArrowRight":
+            currentInstruction = 1;
+            runLevel();
+
             break;
-        case "move":
-            // if I ever want to do anything with this in the future
+        case "ArrowDown":
+            currentInstruction = 2;
+            runLevel();
+
             break;
-        case "begin":
-            document.getElementById("loadingScreen").style.visibility = "hidden";
+        case "ArrowLeft":
+            currentInstruction = 3;
+            runLevel();
+
+            break;
     }
 }
 
 addEventListener("blur", () => focussed = false);
 addEventListener("focus", () => focussed = true);
-addEventListener("keyup", emitEvent);
+addEventListener("keydown", keyInput);
 
-onload = loadImages(load);
+onload = loadImages;
