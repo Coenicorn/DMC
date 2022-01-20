@@ -92,7 +92,7 @@
     <script src="src/main.js"></script>
     <script>
         function animateLoad() {
-            if (player) return;
+            if (player || !assetsLoaded) return;
 
             load();
 
