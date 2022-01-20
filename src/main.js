@@ -37,7 +37,7 @@ const imagePaths = [
     "player_idle_left", "player_idle_right", "player_water",
     "start", "end", "walk1", "walk2", "walk3", "nowalk",
     "spikes", "spikes_extended", "cracked", "broken", "piranha",
-    "water", "badshit_tile", "checkpoint"
+    "water", "checkpoint"
 ];
 
 const assets = [];
@@ -74,7 +74,9 @@ function loadImages() {
 function Pic(what) {
     if (what === "walk") return assets[what + Math.round(Math.random() * 2 + 1)];
 
-    return assets[what];
+    if (assets[what]) return assets[what];
+
+    return assets["nowalk"];
 }
 
 function renderPlayer() {
@@ -131,7 +133,10 @@ let deathTile = null;
 let currentInstruction = 0;
 let focussed = true;
 
-let startX, startY;
+let startX, startY, checkX, checkY;
+
+// amount of steps in between checkpoints
+let checkPointInterval = 20;
 let player;
 
 
@@ -192,7 +197,7 @@ function Player() {
         // set the running variable to neither true or false, stopping everything
         running = 2;
 
-        // set player sprite
+        // change player sprite
         switch (cause) {
             case "cracked":
                 this.sprite = "player_" + currentTheme;
@@ -202,7 +207,7 @@ function Player() {
                 this.sprite = "player_" + currentTheme;
                 break;
             case "nowalk":
-                this.sprite = "player_" + currentTheme
+                this.sprite = "player_" + currentTheme;
         }
 
         // if there's no cause, it's a new level
@@ -230,6 +235,7 @@ function Tile(x, y, state) {
     this.state = state;
 }
 
+// if you want to add a new tile, you need to update these three lines of code
 const tiles = ["cracked", "spikes", "nowalk", "checkpoint", "end", "walk"];
 const badTiles = tiles.slice(0, 3);
 const goodTiles = tiles.slice(3, 6);
@@ -267,25 +273,21 @@ function randomLevel(w, h) {
         grid.push(tempGrid);
     }
 
-    function hasNeighbours(tile) {
+    function getNeighbours(tile) {
         let x = tile.x;
         let y = tile.y;
 
-        let n1 = (grid[y + 2] || [])[x] != undefined ? (grid[y + 2] || [])[x] : { state: "walk" };
-        let n2 = (grid[y] || [])[x + 2] != undefined ? (grid[y] || [])[x + 2] : { state: "walk" };
-        let n3 = (grid[y - 2] || [])[x] != undefined ? (grid[y - 2] || [])[x] : { state: "walk" };
-        let n4 = (grid[y] || [])[x - 2] != undefined ? (grid[y] || [])[x - 2] : { state: "walk" };
+        let n1 = (grid[y + 2] || [])[x];
+        let n2 = (grid[y] || [])[x + 2];
+        let n3 = (grid[y - 2] || [])[x];
+        let n4 = (grid[y] || [])[x - 2];
 
         let neighbours = [];
 
-        if (badTiles.includes(n1.state))
-            neighbours.push(n1);
-        if (badTiles.includes(n2.state))
-            neighbours.push(n2);
-        if (badTiles.includes(n3.state))
-            neighbours.push(n3);
-        if (badTiles.includes(n4.state))
-            neighbours.push(n4);
+        neighbours.push(n1);
+        neighbours.push(n2);
+        neighbours.push(n3);
+        neighbours.push(n4);
 
         if (neighbours.length)
             return neighbours;
@@ -296,15 +298,21 @@ function randomLevel(w, h) {
         tile.state = "walk";
 
         // get neighbours
-        let neighbours = hasNeighbours(tile);
+        let neighbours = getNeighbours(tile);
 
         // declare next
         let next;
 
-        if (neighbours) {
-            // pick a random neighbour
+        // pick a random neighbour
+        while (true) {
             next = neighbours[Math.floor(Math.random() * neighbours.length)];
 
+            if (next != undefined && badTiles.includes(next.state) || neighbours.length == 0) break;
+
+            neighbours.splice(neighbours.indexOf(next), 1);
+        }
+
+        if (next) {
             next.parent = tile;
 
             // make the tile in between current and neighbour walkable
@@ -326,7 +334,7 @@ function randomLevel(w, h) {
 
     // generates start, end and checkpoints
     function generateSpecial() {
-        // traverse current grid and look for farthest point from the player
+        // loop through current grid and look for farthest point from the player
         let dstHigh, highTile;
 
         for (let x = 0; x < grid.length; x++) {
@@ -346,7 +354,14 @@ function randomLevel(w, h) {
 
         // set the tile farthest away to the end
         highTile.state = "end";
-        
+
+        // generate checkpoints by traversing the current grid and placing a checkpoint every set amount of steps 
+        // let steps = 0, lastCheck;
+
+        // function move(tile) {
+            
+        // }
+
         // set start
         grid[startX][startY].state = "start";
 
@@ -369,6 +384,8 @@ function randomLevel(w, h) {
                 if (tile.state === "start") {
                     startX = tile.x;
                     startY = tile.y;
+                    checkX = startX;
+                    checkY = startY;
                 }
 
                 if (tile.state === "nowalk") continue;
