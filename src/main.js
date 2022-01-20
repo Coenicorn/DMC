@@ -41,6 +41,7 @@ const imagePaths = [
 ];
 
 const assets = [];
+let assetsLoaded = false;
 
 function loadImages() {
     let imagesLoading = imagePaths.length - 1;
@@ -50,6 +51,7 @@ function loadImages() {
 
         if (!imagesLoading) {
             try {
+                assetsLoaded = true;
                 // callback, not needed right now
             } catch (e) { throw e }
         }
