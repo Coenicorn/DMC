@@ -116,7 +116,7 @@ let levelGrid;
 let tileSize = 64;
 let levelSize = 10;
 
-let running = null;
+let running = false;
 // timers in milliseconds
 const updateInterval = 250;
 const deathTimer = 2000;
@@ -306,7 +306,7 @@ function randomLevel(w, h) {
             throw new Error("Level initialization error, no start tile defined");
         }
 
-        resetPlayer();
+        killPlayer();
         camera.toPlayer();
     }
 
@@ -317,58 +317,48 @@ function randomLevel(w, h) {
 
 // for when the player 
 function handleTile(tile) {
-    let isDead = false;
+    let cause;
 
     try {
         switch (tile.state) {
             // not on a tile
             case "nowalk":
-                killPlayer("nowalk");
+                cause = "nowalk";
 
                 updateTileSprite(tile, "piranha");
 
-                isDead = true;
                 break;
             
             case "cracked":
-                killPlayer("nowalk");
+                cause = "cracked"
 
                 updateTileSprite(tile, "broken");
 
-                isDead = true;
                 break;
             case "broken":
                 killPlayer("nowalk");
 
-                isDead = true;
                 break;
             case "spikes":
-                killPlayer("spike");
+                cause = "spikes";
 
                 updateTileSprite(tile, "spikes_extended");
 
-                isDead = true;
                 break;
             case "end":
-                stopDaWalk();
                 nextLevel();
 
-                isDead = true;
         }
 
-        if (!isDead) return;
+        if (!cause) return;
 
         deathTile = tile;
 
-        stopDaWalk();
-        setTimeout(resetPlayer, deathTimer);
+        killPlayer(cause);
 
     } catch (e) {
         // in case the player goes out of bounds
-        stopDaWalk();
         killPlayer();
-
-        setTimeout(resetPlayer, deathTimer);
     }
 }
 
@@ -392,25 +382,37 @@ function move(dir) {
 }
 
 function killPlayer(cause) {
-    // if (cause === "nowalk") playerSprite = "player_" + currentTheme;
-    // if (cause === "spike") playerSprite = "player_spike";
-    playerSprite = "player_" + currentTheme;
-}
+    // set the running variable to neither true or false, stopping everything
+    running = 2;
 
-function stopDaWalk() {
-    clearInterval(running);
-}
+    // set player sprite
+    switch (cause) {
+        case "cracked":
+            playerSprite = "player_" + currentTheme;
+            break;
+        case "spikes":
+            // playerSprite = "player_spikes"
+            playerSprite = "player_" + currentTheme;
+            break;
+        case "nowalk":
+            playerSprite = "player_" + currentTheme
+    }
 
-function resetPlayer() {
-    running = null;
+    // if there's no cause, it's a new level
+    if (cause) setTimeout(resetPlayer, deathTimer);
+    else resetPlayer();
 
-    playerSprite = "player_idle";
-    if (deathTile) updateTileSprite(deathTile);
+    function resetPlayer() {
+        playerX = startX;
+        playerY = startY;
 
-    playerX = startX;
-    playerY = startY;
+        playerSprite = "player_idle";
 
-    camera.toPlayer();
+        // update the deathTile sprite;
+        if (deathTile) updateTileSprite(deathTile);
+
+        running = false;
+    }
 }
 
 function nextLevel() {
@@ -419,27 +421,23 @@ function nextLevel() {
     levelSize += 1;
     levelGrid = randomLevel(levelSize, levelSize);
 
-    resetPlayer();
-}
-
-function setSpawn() {
-    startX = playerX;
-    startY = playerY;
+    killPlayer();
 }
 
 function runLevel() {
-    // check for player sprite because otherwise you can instantly restart
-    if (running == null) {
-        stopDaWalk();
-        resetPlayer();
-        running = setInterval(main, updateInterval);
+    if (!running) {
+        killPlayer();
+        running = true;
+        
+        main();
     }
 
     function main() {
-
         move(currentInstruction);
 
         handleTile((levelGrid[playerY] || [])[playerX]);
+
+        if (running == true) setTimeout(main, updateInterval);
     }
 }
 
@@ -470,28 +468,32 @@ function load() {
 }
 
 function keyInput(event) {
+    let isArrow = false;
+
     switch (event.key) {
         case "ArrowUp":
             currentInstruction = 0;
-            runLevel();
+            isArrow = true;
 
             break;
         case "ArrowRight":
             currentInstruction = 1;
-            runLevel();
+            isArrow = true;
 
             break;
         case "ArrowDown":
             currentInstruction = 2;
-            runLevel();
+            isArrow = true;
 
             break;
         case "ArrowLeft":
             currentInstruction = 3;
-            runLevel();
+            isArrow = true;
 
             break;
     }
+
+    if (isArrow) runLevel();
 }
 
 addEventListener("blur", () => focussed = false);
