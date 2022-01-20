@@ -24,8 +24,8 @@ const context = canvas.getContext("2d");
 const levelCache = document.createElement("canvas");
 const levelContext = levelCache.getContext("2d");
 
-const width = canvas.width = screen.width;
-const height = canvas.height = screen.height;
+let width = canvas.width = innerWidth;
+let height = canvas.height = innerHeight;
 
 context.clear = function () {
     context.clearRect(0, 0, width, height);
@@ -34,7 +34,7 @@ context.clear = function () {
 // image loading function I got from stackoverflow lol, preeeetty smart stuff
 
 const imagePaths = [
-    "player_idle", "player_water",
+    "player_idle_left", "player_idle_right", "player_water",
     "start", "end", "walk1", "walk2", "walk3", "nowalk",
     "spikes", "spikes_extended", "cracked", "broken", "piranha",
     "water", "badshit_tile", "checkpoint"
@@ -50,7 +50,7 @@ function loadImages() {
 
         if (!imagesLoading) {
             try {
-                load();
+                // callback, not needed right now
             } catch (e) { throw e }
         }
     }
@@ -78,11 +78,15 @@ function Pic(what) {
 }
 
 function renderPlayer() {
-    // offset the player by a little bit to make it look like he's standing on the stones
-    let x = (playerX * tileSize) * camera.zoom;
-    let y = (playerY * tileSize - tileSize / 4) * camera.zoom;
+    // calculate player coordinates, offset the player by a little bit to make it look like he's standing on the stones
+    let x = (player.x * tileSize) * camera.zoom;
+    let y = (player.y * tileSize - tileSize / 4) * camera.zoom;
 
-    context.drawImage(Pic(playerSprite), camera.x + x, camera.y + y, tileSize * camera.zoom, tileSize * camera.zoom);
+    // account for player direction
+    let dir = "";
+    if (player.sprite == "player_idle") dir = player.direction == 0 ? "_left" : "_right";
+
+    context.drawImage(Pic(player.sprite + dir), camera.x + x, camera.y + y, tileSize * camera.zoom, tileSize * camera.zoom); 
 }
 
 function updateTileSprite(tile, sprite) {
@@ -112,23 +116,24 @@ function render() {
 
 let levelGrid;
 
-// tileSize shouldn't change... like, ever
+// tileSize shouldn't change... like, ever, references the image size in pixels
 let tileSize = 64;
 let levelSize = 10;
 
 let running = false;
 // timers in milliseconds
-const updateInterval = 300;
+const updateInterval = 250;
 const deathTimer = 2000;
 
 let currentTheme = "water";
 
-let playerX, playerY, playerSprite = "player_idle", deathTile = null;
-let startX, startY;
-
+let deathTile = null;
 let currentInstruction = 0;
-
 let focussed = true;
+
+let startX, startY;
+let player;
+
 
 // everything other than the camera uses generalized coordinates
 const camera = {
@@ -139,11 +144,82 @@ const camera = {
     busy: false,
     toPlayer: function () {
         // get vectors to the player from the camera
-        let x = (width / 2 - playerX * tileSize * camera.zoom - tileSize / 2 - camera.x) * camera.speed;
-        let y = (height / 2 - playerY * tileSize * camera.zoom - tileSize / 2 - camera.y) * camera.speed;
+        let px = (player.x * tileSize * camera.zoom) + tileSize * camera.zoom / 2;
+        let py = (player.y * tileSize * camera.zoom) + tileSize * camera.zoom / 2;
+
+        // subtract from center to... center the movement
+        let x = (width/2 - px - camera.x) * camera.speed;
+        let y = (height / 2 - py - camera.y) * camera.speed;
 
         camera.x += x;
         camera.y += y;
+    }
+}
+
+function Player() {
+    this.x = 0;
+    this.y = 0;
+    this.direction = 0;
+    this.sprite = "player_idle";
+
+    this.move = function(dir) {
+        switch (dir) {
+            case 0:
+                player.y--;
+    
+                break;
+            case 1:
+                player.x++;
+                player.direction = 1;
+    
+                break;
+            case 2:
+                player.y++;
+    
+                break;
+            case 3:
+                player.x--;
+                player.direction = 0;
+    
+                break;
+        }
+    }
+
+    this.kill = function(cause) {
+        // get a reference to the player
+        let self = this;
+
+        // set the running variable to neither true or false, stopping everything
+        running = 2;
+
+        // set player sprite
+        switch (cause) {
+            case "cracked":
+                this.sprite = "player_" + currentTheme;
+                break;
+            case "spikes":
+                // player.sprite = "player_spikes"
+                this.sprite = "player_" + currentTheme;
+                break;
+            case "nowalk":
+                this.sprite = "player_" + currentTheme
+        }
+
+        // if there's no cause, it's a new level
+        if (cause) setTimeout(resetPlayer, deathTimer);
+        else resetPlayer();
+
+        function resetPlayer() {
+            self.x = startX;
+            self.y = startY;
+
+            self.sprite = "player_idle";
+
+            // update the deathTile sprite;
+            if (deathTile) updateTileSprite(deathTile);
+
+            running = false;
+        }
     }
 }
 
@@ -306,7 +382,7 @@ function randomLevel(w, h) {
             throw new Error("Level initialization error, no start tile defined");
         }
 
-        killPlayer();
+        player.kill();
         camera.toPlayer();
     }
 
@@ -317,6 +393,7 @@ function randomLevel(w, h) {
 
 // for when the player 
 function handleTile(tile) {
+    // for the right death sprite
     let cause;
 
     try {
@@ -324,8 +401,6 @@ function handleTile(tile) {
             // not on a tile
             case "nowalk":
                 cause = "nowalk";
-
-                updateTileSprite(tile, "piranha");
 
                 break;
             
@@ -336,7 +411,7 @@ function handleTile(tile) {
 
                 break;
             case "broken":
-                killPlayer("nowalk");
+                player.kill("nowalk");
 
                 break;
             case "spikes":
@@ -354,64 +429,11 @@ function handleTile(tile) {
 
         deathTile = tile;
 
-        killPlayer(cause);
+        player.kill(cause);
 
     } catch (e) {
-        // in case the player goes out of bounds
-        killPlayer();
-    }
-}
-
-function move(dir) {
-    // I want to implement move animations at some point but not rn honestly
-
-    switch (dir) {
-        case 0:
-            playerY--;
-            break;
-        case 1:
-            playerX++;
-            break;
-        case 2:
-            playerY++;
-            break;
-        case 3:
-            playerX--;
-            break;
-    }
-}
-
-function killPlayer(cause) {
-    // set the running variable to neither true or false, stopping everything
-    running = 2;
-
-    // set player sprite
-    switch (cause) {
-        case "cracked":
-            playerSprite = "player_" + currentTheme;
-            break;
-        case "spikes":
-            // playerSprite = "player_spikes"
-            playerSprite = "player_" + currentTheme;
-            break;
-        case "nowalk":
-            playerSprite = "player_" + currentTheme
-    }
-
-    // if there's no cause, it's a new level
-    if (cause) setTimeout(resetPlayer, deathTimer);
-    else resetPlayer();
-
-    function resetPlayer() {
-        playerX = startX;
-        playerY = startY;
-
-        playerSprite = "player_idle";
-
-        // update the deathTile sprite;
-        if (deathTile) updateTileSprite(deathTile);
-
-        running = false;
+        // in case the player goes out of bounds there'd be no tile and an error would occur, hence this
+        player.kill();
     }
 }
 
@@ -421,21 +443,21 @@ function nextLevel() {
     levelSize += 1;
     levelGrid = randomLevel(levelSize, levelSize);
 
-    killPlayer();
+    player.kill();
 }
 
 function runLevel() {
     if (!running) {
-        killPlayer();
+        player.kill();
         running = true;
         
         main();
     }
 
     function main() {
-        move(currentInstruction);
+        player.move(currentInstruction);
 
-        handleTile((levelGrid[playerY] || [])[playerX]);
+        handleTile((levelGrid[player.y] || [])[player.x]);
 
         if (running == true) setTimeout(main, updateInterval);
     }
@@ -446,8 +468,7 @@ function mainLoop() {
     // delta time game loop, remember for other projects lol
 
     let now = Date.now();
-    if (focussed)
-        dt = (now - last) / fps;
+    if (focussed) dt = (now - last) / fps;
     last = now;
 
     update();
@@ -462,6 +483,8 @@ function update() {
 }
 
 function load() {
+    player = new Player();
+
     levelGrid = randomLevel(levelSize, levelSize);
 
     mainLoop();
@@ -496,8 +519,14 @@ function keyInput(event) {
     if (isArrow) runLevel();
 }
 
+function onResize() {
+    width = canvas.width = innerWidth;
+    height = canvas.height = innerHeight;
+}
+
 addEventListener("blur", () => focussed = false);
 addEventListener("focus", () => focussed = true);
 addEventListener("keydown", keyInput);
+addEventListener("resize", onResize);
 
 onload = loadImages;
