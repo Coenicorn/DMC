@@ -35,8 +35,8 @@ context.clear = function () {
 
 const imagePaths = [
     "player_idle", "player_water",
-    "start", "end", "walk1", "walk2", "walk3",
-    "spikes", "spikes_extended", "cracked", "broken",
+    "start", "end", "walk1", "walk2", "walk3", "nowalk",
+    "spikes", "spikes_extended", "cracked", "broken", "piranha",
     "water", "badshit_tile", "checkpoint"
 ];
 
@@ -85,13 +85,14 @@ function renderPlayer() {
     context.drawImage(Pic(playerSprite), camera.x + x, camera.y + y, tileSize * camera.zoom, tileSize * camera.zoom);
 }
 
-function updateTileSprite(tile) {
+function updateTileSprite(tile, sprite) {
     let x = tile.x * tileSize;
     let y = tile.y * tileSize;
 
     levelContext.clearRect(x, y, tileSize, tileSize);
 
-    levelContext.drawImage(Pic(tile.state), x, y, tileSize, tileSize);
+    if (sprite) levelContext.drawImage(Pic(sprite), x, y, tileSize, tileSize);
+    else levelContext.drawImage(Pic(tile.state), x, y, tileSize, tileSize);
 }
 
 function render() {
@@ -122,7 +123,7 @@ const deathTimer = 2000;
 
 let currentTheme = "water";
 
-let playerX, playerY, playerSprite = "player_idle";
+let playerX, playerY, playerSprite = "player_idle", deathTile = null;
 let startX, startY;
 
 let currentInstruction = 0;
@@ -136,22 +137,13 @@ const camera = {
     speed: 0.05,
     zoom: 1.5,
     busy: false,
-    toPlayer: function (busy) {
-        if (camera.busy && !busy) return;
-
-        camera.busy = true;
-
+    toPlayer: function () {
         // get vectors to the player from the camera
         let x = (width / 2 - playerX * tileSize * camera.zoom - tileSize / 2 - camera.x) * camera.speed;
         let y = (height / 2 - playerY * tileSize * camera.zoom - tileSize / 2 - camera.y) * camera.speed;
 
         camera.x += x;
         camera.y += y;
-
-        if (Math.hypot(playerY * tileSize * camera.zoom - (height / 2 - camera.y - tileSize / 2), playerX * tileSize * camera.zoom - (width / 2 - camera.x - tileSize / 2)) > 5) requestAnimationFrame(()=>{
-            camera.toPlayer(true);
-        });
-        else camera.busy = false;
     }
 }
 
@@ -325,38 +317,48 @@ function randomLevel(w, h) {
 
 // for when the player 
 function handleTile(tile) {
+    let isDead = false;
+
     try {
         switch (tile.state) {
             // not on a tile
             case "nowalk":
                 killPlayer("nowalk");
 
+                updateTileSprite(tile, "piranha");
+
+                isDead = true;
                 break;
             
             case "cracked":
                 killPlayer("nowalk");
 
-                tile.state = "broken";
-                updateTileSprite(tile);
+                updateTileSprite(tile, "broken");
 
+                isDead = true;
                 break;
             case "broken":
                 killPlayer("nowalk");
 
+                isDead = true;
                 break;
             case "spikes":
                 killPlayer("spike");
 
-                tile.state = "spikes_extended";
-                updateTileSprite(tile);
+                updateTileSprite(tile, "spikes_extended");
+
+                isDead = true;
                 break;
             case "end":
                 stopDaWalk();
                 nextLevel();
-            
-            default:
-                return;
+
+                isDead = true;
         }
+
+        if (!isDead) return;
+
+        deathTile = tile;
 
         stopDaWalk();
         setTimeout(resetPlayer, deathTimer);
@@ -397,11 +399,13 @@ function killPlayer(cause) {
 
 function stopDaWalk() {
     clearInterval(running);
-    running = null;
 }
 
 function resetPlayer() {
+    running = null;
+
     playerSprite = "player_idle";
+    if (deathTile) updateTileSprite(deathTile);
 
     playerX = startX;
     playerY = startY;
@@ -425,7 +429,7 @@ function setSpawn() {
 
 function runLevel() {
     // check for player sprite because otherwise you can instantly restart
-    if (running == null && playerSprite == "player_idle") {
+    if (running == null) {
         stopDaWalk();
         resetPlayer();
         running = setInterval(main, updateInterval);
@@ -448,12 +452,15 @@ function mainLoop() {
         dt = (now - last) / fps;
     last = now;
 
-    camera.speed = dt * 0.05;
-    if (running) camera.toPlayer();
-
+    update();
     render();
 
     requestAnimationFrame(mainLoop);
+}
+
+function update() {
+    camera.speed = dt * 0.05;
+    camera.toPlayer();
 }
 
 function load() {
