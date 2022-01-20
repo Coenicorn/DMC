@@ -118,7 +118,7 @@ let levelSize = 10;
 
 let running = false;
 // timers in milliseconds
-const updateInterval = 250;
+const updateInterval = 300;
 const deathTimer = 2000;
 
 let currentTheme = "water";
