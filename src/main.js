@@ -37,7 +37,7 @@ const imagePaths = [
     "player_idle_left", "player_idle_right", "player_water",
     "start", "end", "walk1", "walk2", "walk3", "nowalk",
     "spikes", "spikes_death", "cracked", "broken_death", "piranha",
-    "water", "checkpoint", "bridge_horizontal", "bridge_vertical"
+    "water", "water_death", "checkpoint", "bridge_horizontal", "bridge_vertical"
 ];
 
 const assets = [];
@@ -77,8 +77,6 @@ function Pic(what) {
     if (what === "walk") return assets[what + Math.round(Math.random() * 2 + 1)];
 
     if (assets[what]) return assets[what];
-
-    return assets["nowalk"];
 }
 
 function renderPlayer() {
@@ -444,10 +442,12 @@ function handleTile(tile) {
             case "nowalk":
                 cause = "nowalk";
 
+                updateTileSprite(tile, currentTheme + "_death");
+
                 break;
             
             case "cracked":
-                cause = "cracked"
+                cause = "cracked";
 
                 updateTileSprite(tile, "broken_death");
 
@@ -465,6 +465,7 @@ function handleTile(tile) {
             case "end":
                 nextLevel();
 
+                break;
         }
 
         if (!cause) return;
@@ -475,7 +476,7 @@ function handleTile(tile) {
 
     } catch (e) {
         // in case the player goes out of bounds there'd be no tile and an error would occur, hence this
-        player.kill();
+        player.kill(currentTheme + "_death");
     }
 }
 
