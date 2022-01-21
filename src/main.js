@@ -71,7 +71,7 @@ function loadImages() {
     main();
 }
 
-// get a sprite from the assets array, doesn't raelly add anything atm
+// get a sprite from the assets array, randomizes the normal stone tile
 function Pic(what) {
     if (what === "walk") return assets[what + Math.round(Math.random() * 2 + 1)];
 
@@ -90,12 +90,14 @@ function renderPlayer() {
     context.drawImage(Pic(player.sprite + dir), camera.x + x, camera.y + y, tileSize * camera.zoom, tileSize * camera.zoom); 
 }
 
+// changes the tile sprite on the level cache
 function updateTileSprite(tile, sprite) {
     let x = tile.x * tileSize;
     let y = tile.y * tileSize;
 
     levelContext.clearRect(x, y, tileSize, tileSize);
 
+    // if there's another sprite given, draw that, otherwise just draw the tile's sprite
     if (sprite) levelContext.drawImage(Pic(sprite), x, y, tileSize, tileSize);
     else levelContext.drawImage(Pic(tile.state), x, y, tileSize, tileSize);
 }
@@ -132,20 +134,22 @@ let deathTile = null;
 let currentInstruction = 0;
 let focussed = true;
 
+// keeps track of start tile and last checkpoint
 let startX, startY, checkX, checkY;
 
 // amount of steps in between checkpoints
 let checkPointInterval = 20;
 let player;
 
-
 // everything other than the camera uses generalized coordinates
 const camera = {
     x: 0,
     y: 0,
-    speed: 0,
+    speed: 0.05,
     zoom: 2,
     toPlayer: function () {
+        // kinda fucked up the camera, spaghetti code go brrrrrrrrrr
+
         // get vectors to the player from the camera
         let px = (player.x * tileSize * camera.zoom) + tileSize * camera.zoom / 2;
         let py = (player.y * tileSize * camera.zoom) + tileSize * camera.zoom / 2;
@@ -158,7 +162,7 @@ const camera = {
         camera.y += y * camera.speed * deltaTime;
     },
     calculateSpeed: function() {
-        camera.speed = 1 / (1000 / 60);
+        // does nothing atm
     }
 }
 
@@ -216,11 +220,14 @@ function Player() {
         }
 
         // if there's no cause, it's a new level
-        if (cause) setTimeout(resetPlayer, deathTimer);
+        if (cause) setTimeout(()=>{
+            resetPlayer(cause);
+        }, deathTimer);
         else resetPlayer();
 
-        function resetPlayer() {
-            if (callback) callback();
+        function resetPlayer(cause) {
+            // checks for next level
+            if (cause == "won") nextLevel();
 
             self.x = startX;
             self.y = startY;
@@ -252,18 +259,19 @@ const goodTiles = tiles.slice(3, 7);
 // ------------------------------------------------------------------------------
 
 /*
-    Maze generation logic:
-    step 1: Get the neighbouring tiles that aren't walkable
-    step 2: If the list is empty, backtrack
-    step 3: Else, pick a random tile from this list to repeat this process on
-    step 4: If the 
+    Maze generation logic: (not that advanced):
+
+        step 1: Get the neighbouring tiles that aren't walkable
+        step 2: If the list is empty, backtrack
+        step 3: Else, pick a random tile from this list to repeat this process on
+        step 4: If there's no tiles left, load level
 */
 
 // random level generation code
 function randomLevel(w, h) {
     let grid = [];
 
-    // set starting point\
+    // set starting point
     startX = 1;
     startY = 1;
 
@@ -289,15 +297,7 @@ function randomLevel(w, h) {
         let n3 = (grid[y - 2] || [])[x];
         let n4 = (grid[y] || [])[x - 2];
 
-        let neighbours = [];
-
-        neighbours.push(n1);
-        neighbours.push(n2);
-        neighbours.push(n3);
-        neighbours.push(n4);
-
-        if (neighbours.length)
-            return neighbours;
+        return [n1, n2, n3, n4];
     }
 
     function generateLayout(tile) {
@@ -438,8 +438,9 @@ function randomLevel(w, h) {
 
 // for when the player 
 function handleTile(tile) {
-    // for the right death sprite
+    // for the right death sprite later
     let cause;
+    let sprite;
 
     try {
         switch (tile.state) {
@@ -447,38 +448,37 @@ function handleTile(tile) {
             case "nowalk":
                 cause = "nowalk";
 
-                updateTileSprite(tile, currentTheme + "_death");
+                sprite = currentTheme + "_death";
 
                 break;
             
             case "cracked":
                 cause = "cracked";
 
-                updateTileSprite(tile, "broken_death");
+                sprite = "broken_death";
 
                 break;
-            case "broken":
-                player.kill("nowalk");
 
-                break;
             case "spikes":
                 cause = "spikes";
 
-                updateTileSprite(tile, "spikes_death");
+                sprite = "spikes_death";
 
                 break;
+
             case "end":
-                player.kill("won", nextLevel);
+                cause = "won";
 
                 break;
         }
+
+        if (sprite) updateTileSprite(tile, sprite);
 
         if (!cause) return;
 
         deathTile = tile;
 
         player.kill(cause);
-
     } catch (e) {
         // in case the player goes out of bounds there'd be no tile and an error would occur, hence this
         player.kill(currentTheme + "_death");
@@ -503,6 +503,7 @@ function runLevel() {
     function main() {
         player.move(currentInstruction);
 
+        // cheeky little check if there is a tile there
         handleTile((levelGrid[player.y] || [])[player.x]);
 
         if (running == true) setTimeout(main, updateInterval);
@@ -525,6 +526,8 @@ function mainLoop() {
 
 function update() {
     camera.toPlayer();
+    
+    // might add other stuff here later, idk
 }
 
 function load() {
@@ -532,11 +535,10 @@ function load() {
 
     levelGrid = randomLevel(levelSize, levelSize);
 
-    camera.calculateSpeed();
-
     mainLoop();
 }
 
+// input handler
 function keyInput(event) {
     let isArrow = false;
 
@@ -563,6 +565,7 @@ function keyInput(event) {
             break;
     }
 
+    // run level on arrow down
     if (isArrow) runLevel();
 }
 
