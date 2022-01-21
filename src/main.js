@@ -6,8 +6,7 @@
     just be disrespectful to not do so, thanks!
 
     Anyway, prepare for a shitty ride if you're just trying to look
-    through this code, it's pretty bad, I didn't spend that much time
-    on writing comments, sorry...
+    through this code, it's pretty bad lol.
 */
 
 
@@ -34,7 +33,7 @@ context.clear = function () {
 // image loading function I got from stackoverflow lol, preeeetty smart stuff
 
 const imagePaths = [
-    "player_idle_left", "player_idle_right", "player_water",
+    "player_idle_left", "player_idle_right", "player_water", "player_won",
     "start", "end", "walk1", "walk2", "walk3", "nowalk",
     "spikes", "spikes_death", "cracked", "broken_death", "piranha",
     "water", "water_death", "checkpoint", "bridge_horizontal", "bridge_vertical"
@@ -192,7 +191,7 @@ function Player() {
         }
     }
 
-    this.kill = function(cause) {
+    this.kill = function(cause, callback) {
         // get a reference to the player
         let self = this;
 
@@ -210,6 +209,10 @@ function Player() {
                 break;
             case "nowalk":
                 this.sprite = "nowalk";
+                break;
+            case "won":
+                this.sprite = "player_won";
+                break;
         }
 
         // if there's no cause, it's a new level
@@ -217,6 +220,8 @@ function Player() {
         else resetPlayer();
 
         function resetPlayer() {
+            if (callback) callback();
+
             self.x = startX;
             self.y = startY;
 
@@ -463,7 +468,7 @@ function handleTile(tile) {
 
                 break;
             case "end":
-                nextLevel();
+                player.kill("won", nextLevel);
 
                 break;
         }
@@ -485,8 +490,6 @@ function nextLevel() {
 
     levelSize += 1;
     levelGrid = randomLevel(levelSize, levelSize);
-
-    player.kill();
 }
 
 function runLevel() {
