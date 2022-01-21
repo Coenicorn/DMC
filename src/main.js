@@ -411,6 +411,8 @@ function randomLevel(w, h) {
                 levelContext.drawImage(Pic(currentTheme), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
                 levelContext.drawImage(Pic(tile.state), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
 
+                console.log(tile.state);
+
                 // draw connections between walkable tiles
                 
                 // left
