@@ -80,8 +80,8 @@ function Pic(what) {
 
 function renderPlayer() {
     // calculate player coordinates, offset the player by a little bit to make it look like he's standing on the stones
-    let x = (player.x * tileSize) * camera.zoom;
-    let y = (player.y * tileSize - tileSize / 4) * camera.zoom;
+    let x = (player.animX * tileSize) * camera.zoom;
+    let y = (player.animY * tileSize - tileSize / 4) * camera.zoom;
 
     // account for player direction
     let dir = "";
@@ -113,6 +113,11 @@ function render() {
     renderPlayer();
 }
 
+function limit(x, l) {
+    if (x > 0) return x > l ? l : x;
+    return x < -l ? -l : x;
+}
+
 // ------------------------------------------------------------------------------
 // VARIABLE DECLARATIONS
 // ------------------------------------------------------------------------------
@@ -124,8 +129,10 @@ let tileSize = 64;
 let levelSize = 10;
 
 let running = false;
+let ready = false;
+
 // timers in milliseconds
-const updateInterval = 250;
+const updateInterval = 300;
 const deathTimer = 2000;
 
 let currentTheme = "water";
@@ -145,30 +152,19 @@ let player;
 const camera = {
     x: 0,
     y: 0,
-    speed: 0.05,
+    speed: 0,
     zoom: 2,
     toPlayer: function () {
-        // kinda fucked up the camera, spaghetti code go brrrrrrrrrr
-
-        // get vectors to the player from the camera
-        let px = (player.x * tileSize * camera.zoom) + tileSize * camera.zoom / 2;
-        let py = (player.y * tileSize * camera.zoom) + tileSize * camera.zoom / 2;
-
-        // subtract from center to... center the movement
-        let x = width / 2 - camera.x - px;
-        let y = height / 2 - camera.y - py;
-
-        camera.x += x * camera.speed * deltaTime;
-        camera.y += y * camera.speed * deltaTime;
-    },
-    calculateSpeed: function() {
-        // does nothing atm
+        camera.x = width/2 - player.animX * tileSize * camera.zoom;
+        camera.y = height/2 - player.animY * tileSize * camera.zoom;
     }
 }
 
 function Player() {
     this.x = 0;
     this.y = 0;
+    this.animX = 0;
+    this.animY = 0;
     this.direction = 0;
     this.sprite = "player_idle";
 
@@ -195,7 +191,28 @@ function Player() {
         }
     }
 
-    this.kill = function(cause, callback) {
+    this.moveSprite = function () {
+        let self = this;
+
+        // get difference between sprite position and real position
+        let changeX = this.x - this.animX;
+        let changeY = this.y - this.animY;
+
+        let mult = 1 / (fps);
+
+        if (changeX < mult && changeY < mult) {
+            self.animX = this.x;
+            self.animY = this.y;
+
+            return;
+        }
+
+        // multiply by time needed to move from one to another
+        this.animX += changeX * mult * deltaTime;
+        this.animY += changeY * mult * deltaTime;
+    }
+
+    this.kill = function(cause) {
         // get a reference to the player
         let self = this;
 
@@ -411,8 +428,6 @@ function randomLevel(w, h) {
                 levelContext.drawImage(Pic(currentTheme), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
                 levelContext.drawImage(Pic(tile.state), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
 
-                console.log(tile.state);
-
                 // draw connections between walkable tiles
                 
                 // left
@@ -430,7 +445,6 @@ function randomLevel(w, h) {
         }
 
         player.kill();
-        camera.toPlayer();
     }
 
     generateLayout(grid[startX][startY]);
@@ -490,7 +504,7 @@ function handleTile(tile) {
 function nextLevel() {
     currentInstruction = 0;
 
-    levelSize += 1;
+    levelSize += 2;
     levelGrid = randomLevel(levelSize, levelSize);
 }
 
@@ -528,7 +542,8 @@ function mainLoop() {
 
 function update() {
     camera.toPlayer();
-    
+    player.moveSprite();
+
     // might add other stuff here later, idk
 }
 
