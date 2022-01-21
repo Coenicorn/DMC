@@ -36,8 +36,8 @@ context.clear = function () {
 const imagePaths = [
     "player_idle_left", "player_idle_right", "player_water",
     "start", "end", "walk1", "walk2", "walk3", "nowalk",
-    "spikes", "spikes_extended", "cracked", "broken", "piranha",
-    "water", "checkpoint"
+    "spikes", "spikes_death", "cracked", "broken_death", "piranha",
+    "water", "checkpoint", "bridge_horizontal", "bridge_vertical"
 ];
 
 const assets = [];
@@ -146,20 +146,22 @@ let player;
 const camera = {
     x: 0,
     y: 0,
-    speed: 0.05,
-    zoom: 1.5,
-    busy: false,
+    speed: 0,
+    zoom: 2,
     toPlayer: function () {
         // get vectors to the player from the camera
         let px = (player.x * tileSize * camera.zoom) + tileSize * camera.zoom / 2;
         let py = (player.y * tileSize * camera.zoom) + tileSize * camera.zoom / 2;
 
         // subtract from center to... center the movement
-        let x = (width/2 - px - camera.x) * camera.speed;
-        let y = (height / 2 - py - camera.y) * camera.speed;
+        let x = width / 2 - camera.x - px;
+        let y = height / 2 - camera.y - py;
 
-        camera.x += x;
-        camera.y += y;
+        camera.x += x * camera.speed * deltaTime;
+        camera.y += y * camera.speed * deltaTime;
+    },
+    calculateSpeed: function() {
+        camera.speed = 1 / (1000 / 60);
     }
 }
 
@@ -202,14 +204,14 @@ function Player() {
         // change player sprite
         switch (cause) {
             case "cracked":
-                this.sprite = "player_" + currentTheme;
+                this.sprite = "nowalk";
                 break;
             case "spikes":
                 // player.sprite = "player_spikes"
-                this.sprite = "player_" + currentTheme;
+                this.sprite = "nowalk";
                 break;
             case "nowalk":
-                this.sprite = "player_" + currentTheme;
+                this.sprite = "nowalk";
         }
 
         // if there's no cause, it's a new level
@@ -238,9 +240,9 @@ function Tile(x, y, state) {
 }
 
 // if you want to add a new tile, you need to update these three lines of code
-const tiles = ["cracked", "spikes", "nowalk", "checkpoint", "end", "walk"];
+const tiles = ["cracked", "spikes", "nowalk", "checkpoint", "end", "walk", "start"];
 const badTiles = tiles.slice(0, 3);
-const goodTiles = tiles.slice(3, 6);
+const goodTiles = tiles.slice(3, 7);
 
 // ------------------------------------------------------------------------------
 // MAIN FUNCTIONS
@@ -380,9 +382,9 @@ function randomLevel(w, h) {
 
         for (let y = 0; y < grid.length; y++) {
             for (let x = 0; x < grid[y].length; x++) {
-                let tile = new Tile(x, y, grid[y][x].state);
-                grid[y][x] = tile;
+                let tile = grid[y][x];
 
+                // set start tile
                 if (tile.state === "start") {
                     startX = tile.x;
                     startY = tile.y;
@@ -390,10 +392,31 @@ function randomLevel(w, h) {
                     checkY = startY;
                 }
 
+                grid[y][x] = tile;
+            }
+        }
+
+        // draw tiles
+        for (let y = 0; y < grid.length; y++) {
+            for (let x = 0; x < grid[y].length; x++) {
+                let tile = grid[y][x];
+
+                // if there's no tile here, continue
                 if (tile.state === "nowalk") continue;
 
+                // draw tile sprite on top of the current theme (in the water case, ripples around the rock)
                 levelContext.drawImage(Pic(currentTheme), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
                 levelContext.drawImage(Pic(tile.state), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
+
+                // draw connections between walkable tiles
+                
+                // left
+                if (goodTiles.includes(tile.state)) {
+
+                    if ((grid[y]||[])[x-1] && goodTiles.includes((grid[y]||[])[x-1].state)) levelContext.drawImage(Pic("bridge_horizontal"), tile.x * tileSize - tileSize / 2, tile.y * tileSize, tileSize, tileSize);
+                    if ((grid[y-1]||[])[x] &&  goodTiles.includes((grid[y-1]||[])[x].state)) levelContext.drawImage(Pic("bridge_vertical"), tile.x * tileSize, tile.y * tileSize - tileSize / 2, tileSize, tileSize);
+
+                }
             }
         }
 
@@ -426,7 +449,7 @@ function handleTile(tile) {
             case "cracked":
                 cause = "cracked"
 
-                updateTileSprite(tile, "broken");
+                updateTileSprite(tile, "broken_death");
 
                 break;
             case "broken":
@@ -436,7 +459,7 @@ function handleTile(tile) {
             case "spikes":
                 cause = "spikes";
 
-                updateTileSprite(tile, "spikes_extended");
+                updateTileSprite(tile, "spikes_death");
 
                 break;
             case "end":
@@ -482,12 +505,12 @@ function runLevel() {
     }
 }
 
-let desired = 60, fps = 1000 / desired, dt = 0, last = Date.now();
+let desired = 60, fps = 1000 / desired, deltaTime = 0, last = Date.now();
 function mainLoop() {
     // delta time game loop, remember for other projects lol
 
     let now = Date.now();
-    if (focussed) dt = (now - last) / fps;
+    if (focussed) deltaTime = (now - last) / fps;
     last = now;
 
     update();
@@ -497,7 +520,6 @@ function mainLoop() {
 }
 
 function update() {
-    camera.speed = dt * 0.05;
     camera.toPlayer();
 }
 
@@ -505,6 +527,8 @@ function load() {
     player = new Player();
 
     levelGrid = randomLevel(levelSize, levelSize);
+
+    camera.calculateSpeed();
 
     mainLoop();
 }
