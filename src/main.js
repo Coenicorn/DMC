@@ -113,11 +113,6 @@ function render() {
     renderPlayer();
 }
 
-function limit(x, l) {
-    if (x > 0) return x > l ? l : x;
-    return x < -l ? -l : x;
-}
-
 // ------------------------------------------------------------------------------
 // VARIABLE DECLARATIONS
 // ------------------------------------------------------------------------------
@@ -133,6 +128,7 @@ let ready = false;
 
 // timers in milliseconds
 let updateInterval = 400;
+const lowestUpdateInterval = 200;
 const deathTimer = 2000;
 
 let currentTheme = "water";
@@ -148,6 +144,11 @@ let startX, startY, checkX, checkY;
 let checkPointInterval = 20;
 let player;
 
+let mouse = {
+    x: 0,
+    y: 0
+}
+
 // everything other than the camera uses generalized coordinates
 const camera = {
     x: 0,
@@ -160,11 +161,11 @@ const camera = {
         let x = player.x * tileSize * camera.zoom;
         let y = player.y * tileSize * camera.zoom;
 
-        let changeX = (width/2 - camera.x - x) * camera.speed * deltaTime;
-        let changeY = (height/2 - camera.y - y) * camera.speed * deltaTime;
+        let changeX = (width/2 - camera.x - x) / tileSize * camera.zoom;
+        let changeY = (height/2 - camera.y - y) / tileSize * camera.zoom;
 
-        camera.x += changeX / (tileSize * camera.zoom);
-        camera.y += changeY / (tileSize * camera.zoom);
+        camera.x += changeX * deltaTime;
+        camera.y += changeY * deltaTime;
     },
     
     calculateSpeed: function() {
@@ -286,9 +287,9 @@ function randomLevel(w, h) {
         let tempGrid = [];
         for (let x = 0; x < w + 1; x++) {
             // random tile from bad tiles array
-            let tile = badTiles[Math.floor(Math.random() * badTiles.length)];
+            let state = badTiles[Math.floor(Math.random() * badTiles.length)];
 
-            tempGrid.push({ x, y, state: tile });
+            tempGrid.push({ x, y, state });
         }
 
         grid.push(tempGrid);
@@ -490,7 +491,8 @@ function nextLevel() {
     currentInstruction = 0;
 
     levelSize += 2;
-    updateInterval -= 20;
+    updateInterval -= 30;
+    if (updateInterval < lowestUpdateInterval) updateInterval = lowestUpdateInterval;
 
     levelGrid = randomLevel(levelSize, levelSize);
 
@@ -542,6 +544,8 @@ function load() {
 
     camera.calculateSpeed();
 
+    document.getElementById("loadingScreen").className = "animation";
+
     mainLoop();
 }
 
@@ -585,5 +589,9 @@ addEventListener("blur", () => focussed = false);
 addEventListener("focus", () => focussed = true);
 addEventListener("keydown", keyInput);
 addEventListener("resize", onResize);
+addEventListener("mousemove", e=>{
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+})
 
 onload = loadImages;
