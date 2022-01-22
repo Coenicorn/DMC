@@ -132,7 +132,7 @@ let running = false;
 let ready = false;
 
 // timers in milliseconds
-const updateInterval = 300;
+let updateInterval = 400;
 const deathTimer = 2000;
 
 let currentTheme = "water";
@@ -238,12 +238,12 @@ function Player() {
 
             self.sprite = "player_idle";
 
-            // update the deathTile sprite;
-            if (deathTile) updateTileSprite(deathTile);
-
-            if (cause == "won") nextLevel();
+            // update the deathTile sprite, check for new level (no cause)
+            if (deathTile && cause) updateTileSprite(deathTile);
 
             running = false;
+
+            if (cause == "won") nextLevel();
         }
     }
 }
@@ -490,7 +490,11 @@ function nextLevel() {
     currentInstruction = 0;
 
     levelSize += 2;
+    updateInterval -= 20;
+
     levelGrid = randomLevel(levelSize, levelSize);
+
+    camera.calculateSpeed();
 }
 
 function runLevel() {
