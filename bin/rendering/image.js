@@ -1,33 +1,26 @@
 class ImageLoader {
-    assets: Array<HTMLImageElement> | Array<string>;
-    assetsLoading: number;
-
+    assets;
+    assetsLoading;
     constructor() {
         this.assets = [];
     }
-
     /**
-     * @param {Array<string>} assets 
+     * @param {Array<string>} assets
      */
-
-    async LoadAssets(assets: Array<string>, domain: string) {
+    async LoadAssets(assets, domain) {
         this.assetsLoading = assets.length;
-
         for (let i = 0, len = this.assetsLoading; i < len; i++) {
             let name = assets[i];
-
-            let img = await new Promise((resolve, reject)=>{
+            let img = await new Promise((resolve, reject) => {
                 let t = new Image();
                 t.src = `../img/${name}.png`;
                 t.onload = () => resolve(t);
-                t.onerror = () => { throw new Error("Image does not exist")};
+                t.onerror = () => { throw new Error("Image does not exist"); };
             });
-
             this.assets[name] = img;
         }
-
         return this.assets;
     }
 }
-
-export { ImageLoader }
+export { ImageLoader };
+//# sourceMappingURL=image.js.map
