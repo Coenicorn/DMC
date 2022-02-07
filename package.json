@@ -1,0 +1,26 @@
+{
+  "name": "mazecraze",
+  "version": "1.0.0",
+  "description": "A maze game",
+  "main": "webpack.config.js",
+  "bin": {
+    "mazecraze": "bin/main.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Coenicorn/MazeCraze.git"
+  },
+  "author": "Coenicorn",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Coenicorn/MazeCraze/issues"
+  },
+  "homepage": "https://github.com/Coenicorn/MazeCraze#readme",
+  "devDependencies": {
+    "webpack": "^5.68.0",
+    "webpack-cli": "^4.9.2"
+  }
+}
