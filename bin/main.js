@@ -1,9 +1,4 @@
-import { ImageLoader } from "./rendering/image.js";
-const imageloader = new ImageLoader();
-const assetNames = [
-    "0",
-    "1",
-    "2",
-    "3"
-];
+import { Game } from "./game.js";
+const game = new Game();
+game.init();
 //# sourceMappingURL=main.js.map

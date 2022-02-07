@@ -1,10 +1,5 @@
-import { ImageLoader } from "./rendering/image.js";
+import { Game } from "./game.js";
 
-const imageloader = new ImageLoader();
+const game = new Game();
 
-const assetNames = [
-    "0",
-    "1",
-    "2",
-    "3"
-];
+game.init();
