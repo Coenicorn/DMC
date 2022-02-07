@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "outDir": "bin",
+        "outDir": "ts_bin",
         "target": "esnext",
         "module": "esnext",
         "moduleResolution": "node",

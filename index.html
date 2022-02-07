@@ -93,7 +93,13 @@
 
     </div> -->
 
-    <script type="module" src="bin/main.js"></script>
+    <!-- 
+        The top script should be used for development, it can only be run from a web server
+        The bottom script should be used for release, it's a webpacked file and can be run from a single 
+        html file such as this one, no server required.
+    -->
+    <!-- <script type="module" src="bin/main.js"></script> -->
+    <script src="./build/main.js"></script>
 </body>
 
 </html>

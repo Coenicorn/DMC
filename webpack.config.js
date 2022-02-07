@@ -1,7 +1,9 @@
 module.exports = {
-    watch: true,
-    watchOptions: {
-        aggregateTimeout: 600,
-        ignored: "./node_modules"
+    output: {
+        filename: "main.js",
+        path: __dirname + "/build"
+    },
+    entry: {
+        main: "./ts_bin/main.js"
     }
 };
