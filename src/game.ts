@@ -1,27 +1,24 @@
-import { Renderer } from "./rendering/renderer.js";
-import { Player } from "./entities.js";
+import { Renderer, Camera } from "./rendering/renderer.js";
+import { Player } from "./player.js";
 
 class Game extends Renderer{
-    renderer: Renderer;
-
     fps: number;
     running: boolean;
 
     currentDirection: number;
     player: Player;
+    camera: Camera;
 
     theme: string;
 
     constructor() {
         super();
 
-        this.renderer = new Renderer();
-
         this.running = false;
     }
 
     async init() {
-        await this.renderer.loadAssets([
+        await this.loadAssets([
             "cracked"
         ]);
 
@@ -42,13 +39,14 @@ class Game extends Renderer{
             lag = now - last;
             last = now;
 
+            // ideally uses deltatime, but that's not really important if it's singleplayer
             while (lag > 0) {
                 this.update();
 
                 lag -= this.fps;
             }
 
-            this.render();
+            this.render(this.context);
 
             if (this.running)
                 requestAnimationFrame(run.bind(this));
@@ -62,10 +60,15 @@ class Game extends Renderer{
         
     }
 
-    render() {
-        this.renderer.clear();
+    render(ctx: CanvasRenderingContext2D) {
+        ctx.clearRect(0, 0, this.width, this.height);
+        ctx.imageSmoothingEnabled = false;
 
-        // render player
+        ctx.drawImage(this.Pic(this.player.sprite), this.camera.x, this.camera.y);
+    }
+
+    addEventListeners() {
+
     }
 }
 

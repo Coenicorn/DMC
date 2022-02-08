@@ -1,7 +1,21 @@
 import { ImageLoader } from "./image.js";
-class Renderer extends ImageLoader {
+export class Camera {
+    x;
+    y;
+    zoom;
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.zoom = 1;
+    }
+    follow(pos) {
+        // do something
+    }
+}
+export class Renderer extends ImageLoader {
     width;
     height;
+    tileSize;
     canvas;
     context;
     /**
@@ -18,6 +32,8 @@ class Renderer extends ImageLoader {
             document.body.appendChild(this.canvas);
         }
         this.context = this.canvas.getContext("2d");
+        // magic number, indicates the width and height of the sprites in pixels
+        this.tileSize = 64;
         this.resize();
     }
     resize() {
@@ -26,9 +42,5 @@ class Renderer extends ImageLoader {
         this.canvas.width = this.width;
         this.canvas.height = this.height;
     }
-    clear() {
-        this.context.clearRect(0, 0, this.width, this.height);
-    }
 }
-export { Renderer };
 //# sourceMappingURL=renderer.js.map
