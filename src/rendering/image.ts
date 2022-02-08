@@ -1,9 +1,11 @@
 class ImageLoader {
-    assets: Array<HTMLImageElement> | Array<string>;
     assetsLoading: number;
+    assets: Array<HTMLImageElement>;
+    domain: string;
 
-    constructor() {
+    constructor(domain: string) {
         this.assets = [];
+        this.domain = domain;
     }
 
     /**
@@ -12,15 +14,17 @@ class ImageLoader {
      * @param {Array<string>} assets 
      */
 
-    async loadAssets(assets: Array<string>, domain: string) {
+    async loadAssets(assets: Array<string>) {
         this.assetsLoading = assets.length;
 
         for (let i = 0, len = this.assetsLoading; i < len; i++) {
             let name = assets[i];
 
-            let img = await new Promise((resolve, reject)=>{
+            let img = await new Promise((resolve)=>{
                 let t = new Image();
-                t.src = `${domain}/${name}.png`;
+
+                t.src = `${this.domain}/${name}.png`;
+
                 t.onload = () => resolve(t);
                 t.onerror = () => { throw new Error("Image does not exist")};
             });
@@ -28,7 +32,13 @@ class ImageLoader {
             this.assets[name] = img;
         }
 
-        return this.assets;
+        console.log(this.assets);
+    }
+
+    Pic(what: string): HTMLImageElement {
+        if (this.assets[what]) return this.assets[what];
+
+        throw new Error("Assets array does not contain requested image");
     }
 }
 

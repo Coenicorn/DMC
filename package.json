@@ -1,26 +1,22 @@
 {
   "name": "mazecraze",
   "version": "1.0.0",
-  "description": "A maze game",
-  "main": "webpack.config.js",
-  "bin": {
-    "mazecraze": "bin/main.js"
-  },
+  "description": "Solve along with your little buddy, bardy, and try and reach the end!",
   "scripts": {
-    "compile": "tsc -w",
-    "build": "npx webpack"
+    "build": "tsc && npx webpack"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Coenicorn/MazeCraze.git"
   },
+  "keywords": [],
   "author": "Coenicorn",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/Coenicorn/MazeCraze/issues"
   },
   "homepage": "https://github.com/Coenicorn/MazeCraze#readme",
-  "devDependencies": {
+  "dependencies": {
     "webpack": "^5.68.0",
     "webpack-cli": "^4.9.2"
   }

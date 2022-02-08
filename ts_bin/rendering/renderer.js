@@ -1,6 +1,5 @@
 import { ImageLoader } from "./image.js";
 class Renderer extends ImageLoader {
-    imageLoader;
     width;
     height;
     canvas;
@@ -9,7 +8,7 @@ class Renderer extends ImageLoader {
      * Initializes the renderer, takes an optional canvas id as argument
      */
     constructor(canvasID = null) {
-        super();
+        super("../img");
         // check if canvas is given, if not, create it
         if (canvasID) {
             this.canvas = document.getElementById(canvasID);
@@ -19,7 +18,6 @@ class Renderer extends ImageLoader {
             document.body.appendChild(this.canvas);
         }
         this.context = this.canvas.getContext("2d");
-        this.imageLoader = new ImageLoader();
         this.resize();
     }
     resize() {

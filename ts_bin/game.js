@@ -1,22 +1,21 @@
 import { Renderer } from "./rendering/renderer.js";
-import { Vec2 } from "./vec2.js";
-import { Player } from "./entities.js";
 class Game extends Renderer {
     renderer;
     fps;
     running;
-    testObject;
-    gameObjects;
+    currentDirection;
+    player;
+    theme;
     constructor() {
         super();
         this.renderer = new Renderer();
-        this.gameObjects = [];
         this.running = false;
     }
     async init() {
-        await this.renderer.imageLoader.loadAssets([], "../img");
+        await this.renderer.loadAssets([
+            "cracked"
+        ]);
         this.running = true;
-        this.gameObjects.push(new Player(new Vec2(0, 0)));
         this.loop();
     }
     loop() {
@@ -40,15 +39,10 @@ class Game extends Renderer {
         requestAnimationFrame(run.bind(this));
     }
     update() {
-        for (let obj of this.gameObjects) {
-            obj.update();
-        }
     }
     render() {
         this.renderer.clear();
-        for (let obj of this.gameObjects) {
-            obj.render(this.renderer.context);
-        }
+        // render player
     }
 }
 export { Game };

@@ -5,5 +5,6 @@ module.exports = {
     },
     entry: {
         main: "./ts_bin/main.js"
-    }
+    },
+    mode: "production"
 };
