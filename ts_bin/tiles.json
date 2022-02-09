@@ -1,0 +1,13 @@
+{
+    "goodTiles": [
+        "walk",
+        "start",
+        "end",
+        "checkpoint"
+    ],
+    "badTiles": [
+        "water",
+        "spikes",
+        "cracked"
+    ]
+}

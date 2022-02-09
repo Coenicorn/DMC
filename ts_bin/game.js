@@ -1,20 +1,50 @@
-import { Renderer } from "./rendering/renderer.js";
-class Game extends Renderer {
+import { Renderer, Camera } from "./rendering/renderer.js";
+import { Player } from "./player.js";
+import { Level } from "./level.js";
+export class Game extends Renderer {
     fps;
     running;
-    currentDirection;
+    currentInstruction;
     player;
     camera;
+    level;
     theme;
     constructor() {
         super();
+        this.theme = "water";
         this.running = false;
     }
     async init() {
-        await this.loadAssets([
-            "cracked"
+        await this.loadAssets("../img", [
+            "bridge_horizontal",
+            "bridge_horizontal",
+            "broken_death",
+            "broken",
+            "checkpoint",
+            "cracked",
+            "end",
+            "enter",
+            "loading",
+            "nowalk",
+            "piranha",
+            "play",
+            "player_idle_left",
+            "player_idle_right",
+            "player_water",
+            "player_won",
+            "spikes_death",
+            "spikes",
+            "start",
+            "walk1",
+            "walk2",
+            "walk3",
+            "water_death",
+            "water"
         ]);
+        this.camera = new Camera(0, 0);
         this.running = true;
+        this.player = new Player({ x: 0, y: 0 });
+        this.level = new Level(10, 10, this, this.theme);
         this.loop();
     }
     loop() {
@@ -43,10 +73,9 @@ class Game extends Renderer {
     render(ctx) {
         ctx.clearRect(0, 0, this.width, this.height);
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(this.Pic(this.player.sprite), this.camera.x, this.camera.y);
-    }
-    addEventListeners() {
+        // render level
+        ctx.drawImage(this.level.canvas, this.camera.x, this.camera.y);
+        // render player
+        ctx.drawImage(this.Pic(this.player.getSprite()), this.center.x - this.tileSize / 2, this.center.y - this.tileSize / 2);
     }
 }
-export { Game };
-//# sourceMappingURL=game.js.map

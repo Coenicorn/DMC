@@ -20,6 +20,8 @@ export class Renderer extends ImageLoader{
     width: number;
     height: number;
 
+    center: Position;
+
     tileSize: number;
 
     canvas: HTMLCanvasElement;
@@ -30,7 +32,7 @@ export class Renderer extends ImageLoader{
      */
 
     constructor(canvasID: string = null) {
-        super("../img");
+        super();
 
         // check if canvas is given, if not, create it
         if (canvasID) {
@@ -54,5 +56,7 @@ export class Renderer extends ImageLoader{
 
         this.canvas.width = this.width;
         this.canvas.height = this.height;
+
+        this.center = {x: this.width/2, y: this.height/2}
     }
 }

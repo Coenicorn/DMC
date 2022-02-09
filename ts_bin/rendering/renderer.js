@@ -15,6 +15,7 @@ export class Camera {
 export class Renderer extends ImageLoader {
     width;
     height;
+    center;
     tileSize;
     canvas;
     context;
@@ -22,7 +23,7 @@ export class Renderer extends ImageLoader {
      * Initializes the renderer, takes an optional canvas id as argument
      */
     constructor(canvasID = null) {
-        super("../img");
+        super();
         // check if canvas is given, if not, create it
         if (canvasID) {
             this.canvas = document.getElementById(canvasID);
@@ -41,6 +42,6 @@ export class Renderer extends ImageLoader {
         this.height = innerHeight;
         this.canvas.width = this.width;
         this.canvas.height = this.height;
+        this.center = { x: this.width / 2, y: this.height / 2 };
     }
 }
-//# sourceMappingURL=renderer.js.map
