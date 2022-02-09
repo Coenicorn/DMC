@@ -17,7 +17,7 @@ export class Game extends Renderer {
     async init() {
         await this.loadAssets("../img", [
             "bridge_horizontal",
-            "bridge_horizontal",
+            "bridge_vertical",
             "broken_death",
             "broken",
             "checkpoint",
