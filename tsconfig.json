@@ -1,12 +1,13 @@
 {
     "compilerOptions": {
+        "removeComments": true,
         "outDir": "ts_bin",
         "target": "esnext",
         "moduleResolution": "node",
         "resolveJsonModule": true,
+        "baseUrl": "./",
         "typeRoots": [
             "./src/types.ts",
-            "./node_modules/@types"
         ]
     }
 }

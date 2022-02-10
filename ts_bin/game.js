@@ -15,7 +15,7 @@ export class Game extends Renderer {
         this.running = false;
     }
     async init() {
-        await this.loadAssets("../img", [
+        await this.loadAssets("./img", [
             "bridge_horizontal",
             "bridge_vertical",
             "broken_death",
@@ -56,7 +56,6 @@ export class Game extends Renderer {
             now = Date.now();
             lag = now - last;
             last = now;
-            // ideally uses deltatime, but that's not really important if it's singleplayer
             while (lag > 0) {
                 this.update();
                 lag -= this.fps;
@@ -65,7 +64,6 @@ export class Game extends Renderer {
             if (this.running)
                 requestAnimationFrame(run.bind(this));
         }
-        // bind it to the Game object to use 'this'
         requestAnimationFrame(run.bind(this));
     }
     update() {
@@ -73,9 +71,7 @@ export class Game extends Renderer {
     render(ctx) {
         ctx.clearRect(0, 0, this.width, this.height);
         ctx.imageSmoothingEnabled = false;
-        // render level
         ctx.drawImage(this.level.canvas, this.camera.x, this.camera.y);
-        // render player
         ctx.drawImage(this.Pic(this.player.getSprite()), this.center.x - this.tileSize / 2, this.center.y - this.tileSize / 2);
     }
 }

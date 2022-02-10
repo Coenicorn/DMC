@@ -1,4 +1,4 @@
-class ImageLoader {
+export class ImageLoader {
     assetsLoading: number;
     assets: Array<HTMLImageElement>;
 
@@ -38,5 +38,3 @@ class ImageLoader {
         throw new Error(`Assets array does not contain ${what}.png`);
     }
 }
-
-export { ImageLoader }
