@@ -75,8 +75,8 @@
         Canvas not supported (ya dingus)
     </canvas>
 
-    <!-- <div id="loadingScreen">
-        
+    <div id="loadingScreen">
+
         <h2>This might only work on Chrome</h2>
         <h2>Best experienced full-screen</h2>
 
@@ -87,30 +87,15 @@
     <div id="gui">
 
         <h1>click to play</h1>
-<<<<<<< HEAD
         <img src="img/0.png" alt="arrow down" id="d">
         <img src="img/3.png" alt="arrow left" id="l">
         <img src="img/1.png" alt="arrow right" id="r">
         <img src="img/2.png" alt="arrow up" id="u">
 
-    </div> -->
-
-    <!-- 
-        The top script should be used for development, it can only be run from a web server
-        The bottom script should be used for release, it's a webpacked file and can be run from a single 
-        html file such as this one, no server required.
-    -->
-    <script type="module" src="src/main.js"></script>
-    <!-- <script src="main.js"></script> -->
-=======
-        <img src="assets/0.png" alt="arrow down" id="d">
-        <img src="assets/3.png" alt="arrow left" id="l">
-        <img src="assets/1.png" alt="arrow right" id="r">
-        <img src="assets/2.png" alt="arrow up" id="u">
-
     </div>
 
     <script src="src/main.js"></script>
+
     <script>
         function animateLoad() {
             if (player || !assetsLoaded) return;
@@ -120,7 +105,6 @@
             document.getElementById("loadingScreen").className = "animation";
         }
     </script>
->>>>>>> parent of 3f3cd4a (Fixed more bugs... of course)
 </body>
 
 </html>
