@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maze Craze</title>
+    <style>
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -2;
+            background-color: #40c4ff;
+        }
+
+        #gui {
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+            user-select: none;
+            position: absolute;
+            left: 5px;
+            bottom: 0px;
+            z-index: -1;
+        }
+
+        #loadingScreen {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            z-index: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #757575;
+            text-align: center;
+        }
+
+        #loadingScreen img {
+            -webkit-user-drag: none;
+            user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .animation {
+            animation: fadeOutOnClick 1s;
+            animation-fill-mode: forwards;
+        }
+
+        @keyframes fadeOutOnClick {
+            from {
+                opacity: 100%;
+            }
+
+            to {
+                opacity: 0%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="GameScreen">
+        Canvas not supported (ya dingus)
+    </canvas>
+
+    <div id="loadingScreen">
+        
+        <h2>This might only work on Chrome, best experienced full-screen</h2>
+
+        <img src="assets/play.png" alt="click to play" onclick="animateLoad()">
+
+    </div>
+
+    <div id="gui">
+
+        <h1>click to play</h1>
+        <img src="assets/0.png" alt="arrow down" id="d">
+        <img src="assets/3.png" alt="arrow left" id="l">
+        <img src="assets/1.png" alt="arrow right" id="r">
+        <img src="assets/2.png" alt="arrow up" id="u">
+
+    </div>
+
+    <script src="src/main.js"></script>
+    <script>
+        function animateLoad() {
+            if (player || !assetsLoaded) return;
+
+            setTimeout(load, 1);
+        }
+    </script>
+</body>
+
+</html>
