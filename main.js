@@ -20,8 +20,8 @@
 const canvas = document.getElementById("GameScreen");
 const context = canvas.getContext("2d");
 
-let levelCache;
-let levelContext;
+const levelCache = document.createElement("canvas");
+const levelContext = levelCache.getContext("2d");
 
 let width = canvas.width = innerWidth;
 let height = canvas.height = innerHeight;
@@ -80,8 +80,8 @@ function Pic(what) {
 
 function renderPlayer() {
     // calculate player coordinates, offset the player by a little bit to make it look like he's standing on the stones
-    let x = (player.x * tileSize) * camera.zoom;
-    let y = (player.y * tileSize - tileSize / 4) * camera.zoom;
+    let x = (player.animX * tileSize) * camera.zoom;
+    let y = (player.animY * tileSize - tileSize / 4) * camera.zoom;
 
     // account for player direction
     let dir = "";
@@ -155,26 +155,16 @@ const camera = {
     speed: 0,
     zoom: 2,
     toPlayer: function () {
-        if (deltaTime > fps * 2) return;
-
-        let x = player.x * tileSize * camera.zoom;
-        let y = player.y * tileSize * camera.zoom;
-
-        let changeX = (width/2 - camera.x - x) * camera.speed * deltaTime;
-        let changeY = (height/2 - camera.y - y) * camera.speed * deltaTime;
-
-        camera.x += changeX / (tileSize * camera.zoom);
-        camera.y += changeY / (tileSize * camera.zoom);
-    },
-    
-    calculateSpeed: function() {
-        camera.speed = tileSize * camera.zoom / (updateInterval / fps);
+        camera.x = width/2 - player.animX * tileSize * camera.zoom;
+        camera.y = height/2 - player.animY * tileSize * camera.zoom;
     }
 }
 
 function Player() {
     this.x = 0;
     this.y = 0;
+    this.animX = 0;
+    this.animY = 0;
     this.direction = 0;
     this.sprite = "player_idle";
 
@@ -199,6 +189,27 @@ function Player() {
     
                 break;
         }
+    }
+
+    this.moveSprite = function () {
+        let self = this;
+
+        // get difference between sprite position and real position
+        let changeX = this.x - this.animX;
+        let changeY = this.y - this.animY;
+
+        let mult = 1 / (fps);
+
+        if (changeX < mult && changeY < mult) {
+            self.animX = this.x;
+            self.animY = this.y;
+
+            return;
+        }
+
+        // multiply by time needed to move from one to another
+        this.animX += changeX * mult * deltaTime;
+        this.animY += changeY * mult * deltaTime;
     }
 
     this.kill = function(cause) {
@@ -233,6 +244,8 @@ function Player() {
 
         function resetPlayer(cause) {
             // checks for next level
+            if (cause == "won") nextLevel();
+
             self.x = startX;
             self.y = startY;
 
@@ -240,8 +253,6 @@ function Player() {
 
             // update the deathTile sprite;
             if (deathTile) updateTileSprite(deathTile);
-
-            if (cause == "won") nextLevel();
 
             running = false;
         }
@@ -383,9 +394,6 @@ function randomLevel(w, h) {
 
     // convert the grid to valid tiles
     function loadLevel() {
-        levelCache = document.createElement("canvas");
-        levelContext = levelCache.getContext("2d");
-
         // set the width and height of the canvas
         levelCache.width = grid[0].length * tileSize;
         levelCache.height = grid.length * tileSize;
@@ -394,7 +402,7 @@ function randomLevel(w, h) {
 
         for (let y = 0; y < grid.length; y++) {
             for (let x = 0; x < grid[y].length; x++) {
-                let tile = new Tile(x, y, grid[y][x].state);
+                let tile = grid[y][x];
 
                 // set start tile
                 if (tile.state === "start") {
@@ -405,6 +413,13 @@ function randomLevel(w, h) {
                 }
 
                 grid[y][x] = tile;
+            }
+        }
+
+        // draw tiles
+        for (let y = 0; y < grid.length; y++) {
+            for (let x = 0; x < grid[y].length; x++) {
+                let tile = grid[y][x];
 
                 // if there's no tile here, continue
                 if (tile.state === "nowalk") continue;
@@ -497,7 +512,7 @@ function runLevel() {
     if (!running) {
         player.kill();
         running = true;
-
+        
         main();
     }
 
@@ -519,14 +534,15 @@ function mainLoop() {
     if (focussed) deltaTime = (now - last) / fps;
     last = now;
 
-    // update();
-    camera.toPlayer();
+    update();
     render();
 
     requestAnimationFrame(mainLoop);
 }
 
 function update() {
+    camera.toPlayer();
+    player.moveSprite();
 
     // might add other stuff here later, idk
 }
@@ -535,8 +551,6 @@ function load() {
     player = new Player();
 
     levelGrid = randomLevel(levelSize, levelSize);
-
-    camera.calculateSpeed();
 
     mainLoop();
 }
