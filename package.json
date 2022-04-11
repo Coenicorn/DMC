@@ -1,27 +1,26 @@
 {
   "name": "mazecraze",
   "version": "1.0.0",
-  "description": "Solve along with your little buddy, bardy, and try and reach the end!",
+  "description": "Crazy Mazes!",
+  "main": "index.js",
   "scripts": {
-    "build": "tsc && npx webpack"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Coenicorn/MazeCraze.git"
   },
-  "keywords": [],
   "author": "Coenicorn",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/Coenicorn/MazeCraze/issues"
   },
   "homepage": "https://github.com/Coenicorn/MazeCraze#readme",
-  "dependencies": {
-    "fs": "^0.0.1-security",
-    "webpack": "^5.68.0",
-    "webpack-cli": "^4.9.2"
-  },
   "devDependencies": {
-    "@types/node": "^17.0.16"
+    "@types/node": "^17.0.21",
+    "typescript": "^4.6.2"
+  },
+  "dependencies": {
+    "fs": "^0.0.1-security"
   }
 }

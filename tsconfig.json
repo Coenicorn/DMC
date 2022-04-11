@@ -1,13 +1,21 @@
 {
     "compilerOptions": {
-        "removeComments": true,
-        "outDir": "ts_bin",
-        "target": "esnext",
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "target": "es6",
         "moduleResolution": "node",
+        "sourceMap": true,
+        "outDir": "dist",
         "resolveJsonModule": true,
-        "baseUrl": "./",
-        "typeRoots": [
-            "./src/types.ts",
+        "lib": [
+            "DOM",
+            "ESNext"
         ]
-    }
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
 }
