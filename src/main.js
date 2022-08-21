@@ -3,7 +3,7 @@
     I couldn't care less what you do with this, it's shit anyway lol
     Please just credit me, or not even me, the awesome people who made the art
     for this game, it's seriously cool of them to have done so and it would
-    just be disrespectful to not do so, thanks!
+    just be disrespectful to not credit them, thanks!
 
     Anyway, prepare for a shitty ride if you're just trying to look
     through this code, it's pretty bad lol.
