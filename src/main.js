@@ -253,6 +253,8 @@ class Player {
 
         if (this.movementTick >= 1) {
             this.movementTick = 0;
+            this.spriteX = this.x
+            this.spriteY = this.y;
             handleTile((levelGrid[this.y]||[])[this.x]);
             return;
         }
@@ -388,10 +390,20 @@ function handleTile(tile) {
     }
 }
 
+function updateScore() {
+    document.getElementById("score").innerHTML = "Score: " + playerScore;
+}
+
 function nextLevel() {
+    // stop the gameloop
     running = false;
 
+    // make level bigger (and thus harder)
     levelSize += 2;
+
+    // update score
+    playerScore++;
+    updateScore();
 
     // speed up
     updateInterval -= updateIncrease;
@@ -444,6 +456,8 @@ function load() {
     levelGrid = randomLevel(levelSize, levelSize);
 
     document.getElementById("loadingScreen").className = "animation";
+
+    updateScore();
 
     requestAnimationFrame(loop);
 }

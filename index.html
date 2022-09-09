@@ -6,11 +6,15 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Maze Craze</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
             width: 100%;
             height: 100%;
             overflow: hidden;
+            font-family: 'Press Start 2P';
         }
 
         canvas {
@@ -22,11 +26,13 @@
         }
 
         #gui {
-            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
             user-select: none;
-            position: absolute;
+        }
+
+        #howtoplay {
+            position: fixed;
             left: 5px;
-            bottom: 0px;
+            bottom: 5px;
             z-index: -1;
         }
 
@@ -85,11 +91,15 @@
 
     <div id="gui">
 
-        <h1>click to play</h1>
-        <img src="assets/0.png" alt="arrow down" id="d">
-        <img src="assets/3.png" alt="arrow left" id="l">
-        <img src="assets/1.png" alt="arrow right" id="r">
-        <img src="assets/2.png" alt="arrow up" id="u">
+        <h1 id="score">Score: </h1>
+
+        <div id="howtoplay">
+            <h1>click to play</h1>
+            <img src="assets/0.png" alt="arrow down" id="d">
+            <img src="assets/3.png" alt="arrow left" id="l">
+            <img src="assets/1.png" alt="arrow right" id="r">
+            <img src="assets/2.png" alt="arrow up" id="u">
+        </div>
 
     </div>
 
