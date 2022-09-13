@@ -455,6 +455,7 @@ function load() {
 
     levelGrid = randomLevel(levelSize, levelSize);
 
+    document.getElementById("howtoplay").style.visibility = "visible";
     document.getElementById("loadingScreen").className = "animation";
 
     updateScore();
