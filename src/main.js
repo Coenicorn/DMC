@@ -1,11 +1,11 @@
 /* 
     Code copyrighted by... nobody, you're free to use this sh*t whenever you'd like
-    I couldn't care less what you do with this, it's shit anyway lol
+    I couldn't care less what you do with this, it's pretty doodoo anyway lol
     Please just credit me, or not even me, the awesome people who made the art
     for this game, it's seriously cool of them to have done so and it would
     just be disrespectful to not credit them, thanks!
 
-    Anyway, prepare for a shitty ride if you're just trying to look
+    Anyway, prepare for an **amazing** -_- ride if you're just trying to look
     through this code, it's pretty bad lol.
 */
 
@@ -188,8 +188,6 @@ const maxAnimationTick = 64;
 // keeps track of start tile
 let startX, startY
 
-// amount of steps in between checkpoints
-let checkPointInterval = 20;
 let player;
 let camera;
 
@@ -201,8 +199,10 @@ let mouse = {
 class Camera {
     x;
     y;
+    // velocity
     vX;
     vY;
+    // target
     tX;
     tY;
     m_zoom;
