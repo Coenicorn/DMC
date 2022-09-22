@@ -32,7 +32,8 @@ const imagePaths = [
     "player_idle_left", "player_idle_right", "player_water", "player_won",
     "start", "end", "walk1", "walk2", "walk3", "nowalk",
     "spikes", "spikes_death", "cracked", "broken_death", "piranha",
-    "water1", "water2", "water_death", "checkpoint", "bridge_horizontal", "bridge_vertical"
+    "water1", "water2", "water_death", "checkpoint", "bridge_horizontal", "bridge_vertical",
+    "fancy_arrow"
 ];
 
 const assets = [];
@@ -112,6 +113,26 @@ function render() {
     context.drawImage(levelCache, x, y, levelCache.width * camera.m_zoom, levelCache.height * camera.m_zoom);
 
     renderPlayer();
+
+    // render arrow pointing to mouse
+    [x, y] = getScreenCoordinates(player.x+.5, player.y+.5);
+    let dX = mouse.x - x;
+    let dY = mouse.y - y;
+
+    let angle = Math.atan2(centerX - mouse.x, centerY - mouse.y);
+
+    let m = Math.sqrt(Math.pow(Math.abs(dX), 2) + Math.pow(Math.abs(dY), 2));
+    dX = (dX / m * 20);
+    dY = (dY / m * 20);
+
+    context.save();
+    context.translate(x + dX, y + dY);
+    context.rotate(-angle);
+    context.translate(-(x + dX), -(y + dY));
+    context.globalAlpha = .7;
+    context.drawImage(Pic("fancy_arrow"), (x + dX)-tileSize/2, (y + dY)-tileSize/2, tileSize, tileSize);
+    context.globalAlpha = 1;
+    context.restore();
 }
 
 function lerp(x1, y1, x2, y2, t) {
@@ -431,6 +452,8 @@ function loop() {
     let dt = (now - last) / fps;
     last = now;
 
+    // increment and wrap around animation tick
+    // used for any animations in the code
     animationTick++;
     if (animationTick >= maxAnimationTick) animationTick = 0;
 
