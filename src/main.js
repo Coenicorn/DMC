@@ -167,12 +167,10 @@ let tileSize = 64;
 let levelSize = 10;
 
 // timers in milliseconds
-let updateInterval = 200;
-const lowestUpdateInterval = 200;
 const deathTimer = 2000;
 
-let updateIncrease = 30;
 let speedIncrease = 0.005;
+let maxSpeed = 0.1;
 
 let currentTheme = "water";
 
@@ -420,6 +418,7 @@ function nextLevel() {
 
     // speed up
     player.speed += speedIncrease;
+    if (player.speed > maxSpeed) player.speed = maxSpeed;
 
     levelGrid = randomLevel(levelSize, levelSize);
 }
