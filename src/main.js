@@ -164,9 +164,6 @@ let pathCache;
 let imageSize = 64;
 let levelSize = 10;
 
-let speedIncrease = 0.005;
-let maxSpeed = 0.1;
-
 // currently not used for much, might get more active in the future
 let currentTheme = "water";
 

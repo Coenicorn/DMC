@@ -1,4 +1,3 @@
 - Support for multiple screens (start screen, death screen)
-- Pathfinding algorithm to prefind path, path invisible on first try, gets more visible every death
 - Better score system, score increases not linearly, but is dependant on factors like time/death count
 - Terminating condition, currently the game has no end, maybe a life system?

@@ -12,6 +12,8 @@ function Tile(x, y, state) {
 const tiles = ["cracked", "spikes", "nowalk", "checkpoint", "end", "walk", "start"];
 // To check if a tile is walkable without includes(), just check if it's state is lower/higher than this
 const firstWalkableTile = 3;
+const speedIncrease = 0.003;
+const maxSpeed = 0.08;
 
 class Camera {
     x;
@@ -34,7 +36,7 @@ class Camera {
         this.zoom = 1;
         this.dZoom = 1;
         this.speed = 1;
-        this.m_maxSpeed = 10;
+        this.maxSpeed = 10;
     }
 
     follow(x, y) {
@@ -58,7 +60,7 @@ class Camera {
         // get new magnitude
         let nM = m * this.speed;
 
-        if (m > this.m_maxSpeed) nM = this.m_maxSpeed;
+        if (m > this.maxSpeed) nM = this.maxSpeed;
 
         v[0] = v[0] / m * nM;
         v[1] = v[1] / m * nM;
