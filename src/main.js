@@ -283,7 +283,7 @@ class Player {
     
         this.movementTick = 0;
     
-        this.speed = 0.03
+        this.speed = 0.01;
     }
 
     kill(cause) {
