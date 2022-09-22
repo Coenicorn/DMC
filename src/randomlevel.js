@@ -1,14 +1,4 @@
-function Tile(x, y, state) {
-    this.x = x;
-    this.y = y;
 
-    this.state = state;
-}
-
-// if you want to add a new tile, you need to update these three lines of code
-const tiles = ["cracked", "spikes", "nowalk", "checkpoint", "end", "walk", "start"];
-// To check if a tile is walkable without includes(), just check if it's state is lower/higher than this
-const firstWalkableTile = 3;
 
 /*
     Maze generation logic: (not that advanced):
@@ -124,14 +114,6 @@ function randomLevel(w, h) {
 
     // convert the grid to valid tiles
     function loadLevel() {
-        levelCache = document.createElement("canvas");
-        levelContext = levelCache.getContext("2d");
-
-        // set the width and height of the canvas
-        levelCache.width = grid[0].length * imageSize;
-        levelCache.height = grid.length * imageSize;
-
-        levelContext.imageSmoothingEnabled = false;
 
         for (let y = 0; y < grid.length; y++) {
             for (let x = 0; x < grid[y].length; x++) {
@@ -146,7 +128,26 @@ function randomLevel(w, h) {
                 }
 
                 grid[y][x] = tile;
+            }
+        }
 
+        drawLevel();
+    }
+
+    function drawLevel() {
+        levelCache = document.createElement("canvas");
+        levelContext = levelCache.getContext("2d");
+
+        // set the width and height of the canvas
+        levelCache.width = grid[0].length * imageSize;
+        levelCache.height = grid.length * imageSize;
+
+        levelContext.imageSmoothingEnabled = false;
+
+        for (let y = 0; y < grid.length; y++) {
+            for (let x = 0; x < grid[y].length; x++) {
+                let tile = grid[y][x];
+                
                 // if there's no tile here, continue
                 if (tiles[tile.state] === "nowalk") continue;
 
@@ -176,24 +177,4 @@ function randomLevel(w, h) {
     generateLayout(grid[startX][startY]);
 
     return grid;
-}
-
-
-
-
-
-/*
-    TODO pathfinding
-    ideally returns an array of path tiles
-
-    A*...?
-*/
-
-function findPath(levelGrid /*two dimensional array of tiles*/) {
-    return;
-}
-
-// Ideally returns HTMLImageElement with cached path same size as level
-function cachePath(path /*array of tiles*/) {
-
 }
