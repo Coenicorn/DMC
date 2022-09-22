@@ -503,7 +503,10 @@ addEventListener("mousemove", e => {
 addEventListener("keydown", (e) => {
     if (e.key == " ") {
         document.getElementById("clicktoplay").click();
-        if (!running && !player.movementTick) running = true;
+        if (!running && !player.movementTick) {
+            running = true;
+            camera.zoom(2.2);
+        }
     }
 });
 
