@@ -71,10 +71,12 @@ function findPath(levelGrid /*two dimensional array of tiles*/, sX, sY, gX, gY) 
         let x = l.x;
         let y = l.y;
         
-        // atNeighbour(x, y, -1, 1);   
-        // atNeighbour(x, y, 1, 1); 
-        // atNeighbour(x, y, -1, -1); 
-        // atNeighbour(x, y, 1, -1); 
+        // diagonal neighbours
+        atNeighbour(x, y, -1, 1);   
+        atNeighbour(x, y, 1, 1); 
+        atNeighbour(x, y, -1, -1); 
+        atNeighbour(x, y, 1, -1); 
+        
         atNeighbour(x, y, -1, 0); 
         atNeighbour(x, y, 1, 0); 
         atNeighbour(x, y, 0, -1); 
