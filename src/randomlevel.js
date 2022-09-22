@@ -1,3 +1,14 @@
+function Tile(x, y, state) {
+    this.x = x;
+    this.y = y;
+
+    this.state = state;
+}
+
+// if you want to add a new tile, you need to update these three lines of code
+const tiles = ["cracked", "spikes", "nowalk", "checkpoint", "end", "walk", "start"];
+const firstWalkableTile = 3;
+
 /*
     Maze generation logic: (not that advanced):
 
@@ -20,7 +31,7 @@ function randomLevel(w, h) {
         let tempGrid = [];
         for (let x = 0; x < w + 1; x++) {
             // random tile from bad tiles array
-            let state = badTiles[Math.floor(Math.random() * badTiles.length)];
+            let state = Math.floor(Math.random() * firstWalkableTile);
 
             tempGrid.push({ x, y, state });
         }
@@ -42,7 +53,7 @@ function randomLevel(w, h) {
 
     function generateLayout(tile) {
         // set current tile to walkable
-        tile.state = "walk";
+        tile.state = tiles.indexOf("walk");
 
         // get neighbours
         let neighbours = getNeighbours(tile);
@@ -54,7 +65,7 @@ function randomLevel(w, h) {
         while (true) {
             next = neighbours[Math.floor(Math.random() * neighbours.length)];
 
-            if (next != undefined && badTiles.includes(next.state) || neighbours.length == 0) break;
+            if (next != undefined && next.state < firstWalkableTile || neighbours.length == 0) break;
 
             neighbours.splice(neighbours.indexOf(next), 1);
         }
@@ -65,7 +76,7 @@ function randomLevel(w, h) {
             // make the tile in between current and neighbour walkable
             let betweenX = (tile.x + next.x) / 2;
             let betweenY = (tile.y + next.y) / 2;
-            grid[betweenY][betweenX].state = "walk";
+            grid[betweenY][betweenX].state = tiles.indexOf("walk");
         }
 
         // if there are no valid neighbours, backtrack
@@ -88,7 +99,7 @@ function randomLevel(w, h) {
             for (let y = 0; y < grid[x].length; y++) {
                 let current = grid[x][y];
 
-                if (current.state != "walk") continue;
+                if (current.state != tiles.indexOf("walk")) continue;
 
                 let dst = Math.abs(current.x - startX) + Math.abs(current.y - startY);
 
@@ -100,17 +111,10 @@ function randomLevel(w, h) {
         }
 
         // set the tile farthest away to the end
-        highTile.state = "end";
-
-        // generate checkpoints by traversing the current grid and placing a checkpoint every set amount of steps 
-        // let steps = 0, lastCheck;
-
-        // function move(tile) {
-
-        // }
+        highTile.state = tiles.indexOf("end");
 
         // set start
-        grid[startX][startY].state = "start";
+        grid[startX][startY].state = tiles.indexOf("start");
 
         loadLevel();
     }
@@ -131,7 +135,7 @@ function randomLevel(w, h) {
                 let tile = new Tile(x, y, grid[y][x].state);
 
                 // set start tile
-                if (tile.state === "start") {
+                if (tiles[tile.state] === "start") {
                     startX = tile.x;
                     startY = tile.y;
                     checkX = startX;
@@ -141,19 +145,19 @@ function randomLevel(w, h) {
                 grid[y][x] = tile;
 
                 // if there's no tile here, continue
-                if (tile.state === "nowalk") continue;
+                if (tiles[tile.state] === "nowalk") continue;
 
                 // draw tile sprite on top of the current theme (in the water case, ripples around the rock)
                 levelContext.drawImage(Pic(currentTheme), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
-                levelContext.drawImage(Pic(tile.state), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
+                levelContext.drawImage(Pic(tiles[tile.state]), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
 
                 // draw connections between walkable tiles
 
                 // left
-                if (goodTiles.includes(tile.state)) {
+                if (tile.state >= firstWalkableTile) {
 
-                    if ((grid[y] || [])[x - 1] && goodTiles.includes((grid[y] || [])[x - 1].state)) levelContext.drawImage(Pic("bridge_horizontal"), tile.x * tileSize - tileSize / 2, tile.y * tileSize, tileSize, tileSize);
-                    if ((grid[y - 1] || [])[x] && goodTiles.includes((grid[y - 1] || [])[x].state)) levelContext.drawImage(Pic("bridge_vertical"), tile.x * tileSize, tile.y * tileSize - tileSize / 2, tileSize, tileSize);
+                    if ((grid[y] || [])[x - 1] && (grid[y] || [])[x - 1].state >= firstWalkableTile) levelContext.drawImage(Pic("bridge_horizontal"), tile.x * tileSize - tileSize / 2, tile.y * tileSize, tileSize, tileSize);
+                    if ((grid[y - 1] || [])[x] && (grid[y - 1] || [])[x].state >= firstWalkableTile) levelContext.drawImage(Pic("bridge_vertical"), tile.x * tileSize, tile.y * tileSize - tileSize / 2, tileSize, tileSize);
 
                 }
             }

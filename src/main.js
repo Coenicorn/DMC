@@ -77,13 +77,14 @@ function Pic(what) {
 
 function renderPlayer() {
     // calculate player coordinates, offset the player by a little bit to make it look like he's standing on the stones
-    let [x, y] = getScreenCoordinates(player.spriteX, player.spriteY - .3);
+    let [x, y] = getScreenCoordinates(player.x, player.y - .3);
 
     // account for player direction
+    // not set for debugging, might forget to turn on, we'll see
     let dir = "";
-    if (player.sprite == "player_idle") dir = dirsX[player.direction] < 0 ? "_left" : "_right";
+    if (player.sprite == "player_idle") dir = "_left";
 
-    context.drawImage(Pic(player.sprite + dir), x, y, tileSize * camera.zoom, tileSize * camera.zoom);
+    context.drawImage(Pic(player.sprite + dir), x, y, tileSize * camera.m_zoom, tileSize * camera.m_zoom);
 }
 
 // changes the tile sprite on the level cache
@@ -97,7 +98,7 @@ function updateTileSprite(tile, sprite) {
 
     // if there's another sprite given, draw that, otherwise just draw the tile's sprite
     if (sprite) levelContext.drawImage(Pic(sprite), x, y, tileSize, tileSize);
-    else levelContext.drawImage(Pic(tile.state), x, y, tileSize, tileSize);
+    else levelContext.drawImage(Pic(tiles[tile.state]), x, y, tileSize, tileSize);
 }
 
 function render() {
@@ -108,7 +109,7 @@ function render() {
     let [x, y] = getScreenCoordinates(0, 0);
 
     // render the level on the current canvas
-    context.drawImage(levelCache, x, y, levelCache.width * camera.zoom, levelCache.height * camera.zoom);
+    context.drawImage(levelCache, x, y, levelCache.width * camera.m_zoom, levelCache.height * camera.m_zoom);
 
     renderPlayer();
 }
@@ -129,17 +130,14 @@ function getScreenCoordinates(gX, gY) {
     let y = gY - camera.y-1;
 
     return [
-        centerX + x * camera.zoom * tileSize,
-        centerY + y * camera.zoom * tileSize
+        centerX + x * camera.m_zoom * tileSize,
+        centerY + y * camera.m_zoom * tileSize
     ];
 }
 
 // ------------------------------------------------------------------------------
 // VARIABLE DECLARATIONS
 // ------------------------------------------------------------------------------
-
-const dirsX = [0, 1, 0, -1];
-const dirsY = [-1, 0, 1, 0];
 
 let levelGrid;
 
@@ -158,7 +156,6 @@ let speedIncrease = 0.005;
 let currentTheme = "water";
 
 let deathTile = null;
-let currentInstruction = -1;
 let focussed = true;
 
 let running = false;
@@ -175,39 +172,75 @@ let startX, startY
 // amount of steps in between checkpoints
 let checkPointInterval = 20;
 let player;
+let camera;
 
 let mouse = {
     x: 0,
     y: 0
 }
 
-// everything other than the camera uses generalized coordinates
-const camera = {
-    x: 0,
-    y: 0,
-    zoom: 10,
-    dZoom: 2,
-    toPlayer: function () {
-        // translate to screen coordinates
-        // let x = player.spriteX * tileSize * camera.zoom;
-        // let y = player.spriteY * tileSize * camera.zoom;
+class Camera {
+    x;
+    y;
+    vX;
+    vY;
+    tX;
+    tY;
+    m_zoom;
+    m_dZoom;
+    m_speed;
 
-        // let changeX = (width / 2 - camera.x - x) / tileSize * camera.zoom;
-        // let changeY = (height / 2 - camera.y - y) / tileSize * camera.zoom;
+    constructor() {
+        this.x = this.y = this.vX = this.vY = this.tX = this.tY = 0;
+        this.m_zoom = 1;
+        this.m_dZoom = 1;
+        this.m_speed = 1;
+        this.m_maxSpeed = 10;
+    }
 
-        // camera.x += changeX * deltaTime;
-        // camera.y += changeY * deltaTime;
+    follow(x, y) {
+        this.tX = x;
+        this.tY = y;
+    }
 
-        camera.x = player.spriteX - .5;
-        camera.y = player.spriteY - .5;
-    },
-    // function to reset zoom based on some speed
-    updateZoom: function() {
-        let d = camera.dZoom - camera.zoom;
+    updateVel() {
+        // get vector from current position towards target position
+        let v = [this.tX - this.x, this.tY - this.y];
+        // get magnitude and normalize
+        let m = Math.sqrt(Math.pow(Math.abs(v[0]), 2) + Math.pow(Math.abs(v[1]), 2));
 
-        if (d === 0) return;
+        if (m < .01)
+        {
+            this.vX = 0;
+            this.vY = 0;
+            return;
+        }
 
-        camera.zoom += d / 6;
+        // get new magnitude
+        let nM = m * this.m_speed;
+
+        if (m > this.maxSpeed) nM = this.m_maxSpeed;
+
+        v[0] = v[0] / m * nM;
+        v[1] = v[1] / m * nM;
+
+        this.vX = v[0];
+        this.vY = v[1];
+    }
+
+    update() {
+        this.updateVel();
+
+        // update zoom
+        let dZ = (this.m_dZoom - this.m_zoom) / 6;
+        this.m_zoom += dZ;
+
+        this.x += this.vX;
+        this.y += this.vY;
+    }
+
+    zoom(z) {
+        this.m_dZoom = z;
     }
 }
 
@@ -216,8 +249,6 @@ class Player {
     y;
     lX;
     lY;
-    spriteX;
-    spriteY;
     direction;
     sprite;
     movementTick;
@@ -228,41 +259,12 @@ class Player {
 
         this.lX = this.lY = 0;
     
-        this.spriteX = this.spriteY = 0;
-    
         this.direction = 0;
         this.sprite = "player_idle";
     
         this.movementTick = 0;
     
-        this.speed = 0.04;
-    }
-
-    move(direction) {
-        this.direction = direction;
-
-        this.lX = this.x;
-        this.lY = this.y;
-
-        this.x += dirsX[direction];
-        this.y += dirsY[direction];
-    }
-
-    animate(dt) {
-        this.movementTick += this.speed * dt;
-
-        if (this.movementTick >= 1) {
-            this.movementTick = 0;
-            this.spriteX = this.x
-            this.spriteY = this.y;
-            handleTile((levelGrid[this.y]||[])[this.x]);
-            return;
-        }
-
-        let [x, y] = lerp(this.lX, this.lY, this.x, this.y, this.movementTick);
-
-        this.spriteX = x;
-        this.spriteY = y;
+        this.speed = 0.03
     }
 
     kill(cause) {
@@ -276,7 +278,7 @@ class Player {
         // if there's no cause, it's a new level
         if (cause) {
             t = deathTimer
-            camera.dZoom = 3;
+            camera.zoom(3);
         }
 
         // change player sprite
@@ -293,7 +295,7 @@ class Player {
                 break;
             case "won":
                 this.sprite = "player_won";
-                camera.dZoom = 2;
+                camera.zoom(2);
                 break;
         }
 
@@ -308,8 +310,8 @@ class Player {
             self.x = startX;
             self.y = startY;
 
-            self.spriteX = self.x;
-            self.spriteY = self.y;
+            self.x = self.x;
+            self.y = self.y;
 
             self.sprite = "player_idle";
 
@@ -320,26 +322,16 @@ class Player {
 
             self.movementTick = 0;
 
-            camera.dZoom = 2;
+            camera.zoom(2);
         }
     }
 }
 
-function Tile(x, y, state) {
-    this.x = x;
-    this.y = y;
-
-    this.state = state;
-}
-
-// if you want to add a new tile, you need to update these three lines of code
-const tiles = ["cracked", "spikes", "nowalk", "checkpoint", "end", "walk", "start"];
-const badTiles = tiles.slice(0, 3);
-const goodTiles = tiles.slice(3, 7);
-
 // ------------------------------------------------------------------------------
 // MAIN FUNCTIONS
 // ------------------------------------------------------------------------------
+
+function getTilePos(x, y) { return ((levelGrid[Math.round(y)]||[])[Math.round(x)]||[]); }
 
 // for when the player 
 function handleTile(tile) {
@@ -348,7 +340,7 @@ function handleTile(tile) {
     let sprite;
 
     try {
-        switch (tile.state) {
+        switch (tiles[tile.state]) {
             // not on a tile
             case "nowalk":
                 cause = "nowalk";
@@ -406,18 +398,31 @@ function nextLevel() {
     updateScore();
 
     // speed up
-    updateInterval -= updateIncrease;
-    if (updateInterval < lowestUpdateInterval) updateInterval = lowestUpdateInterval;
     player.speed += speedIncrease;
 
     levelGrid = randomLevel(levelSize, levelSize);
 }
 
-function runLevel() {
-    if (running || player.movementTick) return;
+function tick(dt) {
+    // move player
 
-    running = true;
-    camera.dZoom = 2.2;
+    // get vector from player to mouse
+    let [dX, dY] = getScreenCoordinates(player.x+.5, player.y+.5);
+    dX = mouse.x - dX;
+    dY = mouse.y - dY;
+
+    // normalize
+    let m = Math.sqrt(Math.pow(Math.abs(dX), 2) + Math.pow(Math.abs(dY), 2));
+
+    // set to player speed
+    dX = dX / m * player.speed * dt;
+    dY = dY / m * player.speed * dt;
+
+    player.x += dX;
+    player.y += dY;
+    
+    // check tile beneath player
+    handleTile(getTilePos(player.x, player.y));
 }
 
 let desired = 60, fps = 1000 / desired, last = Date.now();
@@ -430,27 +435,22 @@ function loop() {
     if (animationTick >= maxAnimationTick) animationTick = 0;
 
     if (running) {
-        tick();
-        player.animate(dt);
+        tick(dt);
     }
     
-    camera.updateZoom();
-    camera.toPlayer();
+    camera.follow(player.x-.5, player.y-.5);
+    camera.update();
+
     render();
 
     requestAnimationFrame(loop);
-}
-
-function tick() {
-    if (player.movementTick === 0) {
-        player.move(currentInstruction);
-    }
 }
 
 // gets called when start button is clicked, called from html
 function load() {
     onResize();
 
+    camera = new Camera();
     player = new Player();
 
     levelGrid = randomLevel(levelSize, levelSize);
@@ -463,45 +463,6 @@ function load() {
     requestAnimationFrame(loop);
 }
 
-// input handler
-function keyInput(event) {
-    let isArrow = false;
-
-    switch (event.key) {
-        case "ArrowUp":
-            currentInstruction = 0;
-            isArrow = true;
-
-            break;
-        case "ArrowRight":
-            currentInstruction = 1;
-            isArrow = true;
-
-            break;
-        case "ArrowDown":
-            currentInstruction = 2;
-            isArrow = true;
-
-            break;
-        case "ArrowLeft":
-            currentInstruction = 3;
-            isArrow = true;
-
-            break;
-        case "w":
-            if (!running)
-            camera.dZoom *= 1.1;
-            break;
-        case "s":
-            if (!running)
-            camera.dZoom /= 1.1;
-            break;
-    }
-
-    // run level on arrow down
-    if (isArrow) runLevel();
-}
-
 function onResize() {
     width = canvas.width = innerWidth;
     height = canvas.height = innerHeight;
@@ -512,11 +473,16 @@ function onResize() {
 
 addEventListener("blur", () => focussed = false);
 addEventListener("focus", () => focussed = true);
-addEventListener("keydown", keyInput);
 addEventListener("resize", onResize);
 addEventListener("mousemove", e => {
     mouse.x = e.clientX;
     mouse.y = e.clientY;
-})
+});
+addEventListener("keydown", (e) => {
+    if (e.key == " ") {
+        document.getElementById("clicktoplay").click();
+        if (!running && !player.movementTick) running = true;
+    }
+});
 
 onload = loadImages;

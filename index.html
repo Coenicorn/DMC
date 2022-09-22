@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maze Craze</title>
+    <title>WFS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -88,9 +88,11 @@
 
     <div id="loadingScreen">
         
-        <h2>This might only work on Chrome, best experienced full-screen</h2>
+        <h2>This might only work on Chrome, best experienced fullscreen</h2>
+        <br>
+        <h2>Disclaimer: You do need a mouse/touchpad for this game</h2>
 
-        <img src="assets/play.png" alt="click to play" onclick="animateLoad()">
+        <img src="assets/play.png" alt="click to play" id="clicktoplay" onclick="animateLoad()">
 
     </div>
 
@@ -99,11 +101,7 @@
         <h1 id="score">Score: </h1>
 
         <div id="howtoplay">
-            <h1>click to play</h1>
-            <img src="assets/0.png" alt="arrow up" id="d" onclick="console.log('hey');keyInput({key:'ArrowUp'});">
-            <img src="assets/3.png" alt="arrow left" id="l" onclick="keyInput({key:'ArrowLeft'});">
-            <img src="assets/1.png" alt="arrow right" id="r" onclick="keyInput({key:'ArrowRight'});">
-            <img src="assets/2.png" alt="arrow down" id="u" onclick="keyInput({key:'ArrowDown'});">
+            <h1>Press [SPACE] to play!</h1>
         </div>
 
     </div>
