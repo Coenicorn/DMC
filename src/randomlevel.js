@@ -7,6 +7,7 @@ function Tile(x, y, state) {
 
 // if you want to add a new tile, you need to update these three lines of code
 const tiles = ["cracked", "spikes", "nowalk", "checkpoint", "end", "walk", "start"];
+// To check if a tile is walkable without includes(), just check if it's state is lower/higher than this
 const firstWalkableTile = 3;
 
 /*
@@ -16,6 +17,8 @@ const firstWalkableTile = 3;
         step 2: If the list is empty, backtrack
         step 3: Else, pick a random tile from this list to repeat this process on
         step 4: If there's no tiles left, load level
+
+        Future coen here: I regret not writing many comments in this :(
 */
 
 // random level generation code
@@ -125,8 +128,8 @@ function randomLevel(w, h) {
         levelContext = levelCache.getContext("2d");
 
         // set the width and height of the canvas
-        levelCache.width = grid[0].length * tileSize;
-        levelCache.height = grid.length * tileSize;
+        levelCache.width = grid[0].length * imageSize;
+        levelCache.height = grid.length * imageSize;
 
         levelContext.imageSmoothingEnabled = false;
 
@@ -148,16 +151,16 @@ function randomLevel(w, h) {
                 if (tiles[tile.state] === "nowalk") continue;
 
                 // draw tile sprite on top of the current theme (in the water case, ripples around the rock)
-                levelContext.drawImage(Pic(currentTheme), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
-                levelContext.drawImage(Pic(tiles[tile.state]), tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
+                levelContext.drawImage(Pic(currentTheme), tile.x * imageSize, tile.y * imageSize, imageSize, imageSize);
+                levelContext.drawImage(Pic(tiles[tile.state]), tile.x * imageSize, tile.y * imageSize, imageSize, imageSize);
 
                 // draw connections between walkable tiles
 
                 // left
                 if (tile.state >= firstWalkableTile) {
 
-                    if ((grid[y] || [])[x - 1] && (grid[y] || [])[x - 1].state >= firstWalkableTile) levelContext.drawImage(Pic("bridge_horizontal"), tile.x * tileSize - tileSize / 2, tile.y * tileSize, tileSize, tileSize);
-                    if ((grid[y - 1] || [])[x] && (grid[y - 1] || [])[x].state >= firstWalkableTile) levelContext.drawImage(Pic("bridge_vertical"), tile.x * tileSize, tile.y * tileSize - tileSize / 2, tileSize, tileSize);
+                    if ((grid[y] || [])[x - 1] && (grid[y] || [])[x - 1].state >= firstWalkableTile) levelContext.drawImage(Pic("bridge_horizontal"), tile.x * imageSize - imageSize / 2, tile.y * imageSize, imageSize, imageSize);
+                    if ((grid[y - 1] || [])[x] && (grid[y - 1] || [])[x].state >= firstWalkableTile) levelContext.drawImage(Pic("bridge_vertical"), tile.x * imageSize, tile.y * imageSize - imageSize / 2, imageSize, imageSize);
 
                 }
             }
@@ -173,4 +176,24 @@ function randomLevel(w, h) {
     generateLayout(grid[startX][startY]);
 
     return grid;
+}
+
+
+
+
+
+/*
+    TODO pathfinding
+    ideally returns an array of path tiles
+
+    A*...?
+*/
+
+function findPath(levelGrid /*two dimensional array of tiles*/) {
+    return;
+}
+
+// Ideally returns HTMLImageElement with cached path same size as level
+function cachePath(path /*array of tiles*/) {
+
 }

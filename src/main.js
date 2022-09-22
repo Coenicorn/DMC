@@ -17,6 +17,7 @@
 const canvas = document.getElementById("GameScreen");
 const context = canvas.getContext("2d");
 
+// level cache
 let levelCache;
 let levelContext;
 
@@ -85,24 +86,25 @@ function renderPlayer() {
     let dir = "";
     if (player.sprite == "player_idle") dir = "_left";
 
-    context.drawImage(Pic(player.sprite + dir), x, y, tileSize * camera.m_zoom, tileSize * camera.m_zoom);
+    context.drawImage(Pic(player.sprite + dir), x, y, imageSize * camera.zoom, imageSize * camera.zoom);
 }
 
-// changes the tile sprite on the level cache
+// updates the tile sprite on the level cache after death "animation" has played
 function updateTileSprite(tile, sprite) {
-    let x = tile.x * tileSize;
-    let y = tile.y * tileSize;
+    let x = tile.x * imageSize;
+    let y = tile.y * imageSize;
 
-    levelContext.clearRect(x, y, tileSize, tileSize);
+    levelContext.clearRect(x, y, imageSize, imageSize);
 
-    if (sprite && sprite !== currentTheme + "_death") levelContext.drawImage(Pic(currentTheme), x, y, tileSize, tileSize);
+    if (sprite && sprite !== currentTheme + "_death") levelContext.drawImage(Pic(currentTheme), x, y, imageSize, imageSize);
 
     // if there's another sprite given, draw that, otherwise just draw the tile's sprite
-    if (sprite) levelContext.drawImage(Pic(sprite), x, y, tileSize, tileSize);
-    else levelContext.drawImage(Pic(tiles[tile.state]), x, y, tileSize, tileSize);
+    if (sprite) levelContext.drawImage(Pic(sprite), x, y, imageSize, imageSize);
+    else levelContext.drawImage(Pic(tiles[tile.state]), x, y, imageSize, imageSize);
 }
 
 function render() {
+    // no blurry images here!
     context.imageSmoothingEnabled = false;
 
     context.clear();
@@ -110,7 +112,7 @@ function render() {
     let [x, y] = getScreenCoordinates(0, 0);
 
     // render the level on the current canvas
-    context.drawImage(levelCache, x, y, levelCache.width * camera.m_zoom, levelCache.height * camera.m_zoom);
+    context.drawImage(levelCache, x, y, levelCache.width * camera.zoom, levelCache.height * camera.zoom);
 
     renderPlayer();
 
@@ -130,29 +132,20 @@ function render() {
     context.rotate(-angle);
     context.translate(-(x + dX), -(y + dY));
     context.globalAlpha = .7;
-    context.drawImage(Pic("fancy_arrow"), (x + dX)-tileSize/2, (y + dY)-tileSize/2, tileSize, tileSize);
+    context.drawImage(Pic("fancy_arrow"), (x + dX)-imageSize/2, (y + dY)-imageSize/2, imageSize, imageSize);
     context.globalAlpha = 1;
     context.restore();
 }
 
-function lerp(x1, y1, x2, y2, t) {
-    if (t < 0 || t > 1) throw new Error("t must be between 0 and 1 in lerp");
-
-    return [
-        x1 + (x2 - x1) * t,
-        y1 + (y2 - y1) * t
-    ];
-}
-
 function getScreenCoordinates(gX, gY) {
-    // multiply with tilesize because all coordinates correspond to tiles on the map
+    // multiply with imageSize because all coordinates correspond to tiles on the map
 
     let x = gX - camera.x-1;
     let y = gY - camera.y-1;
 
     return [
-        centerX + x * camera.m_zoom * tileSize,
-        centerY + y * camera.m_zoom * tileSize
+        centerX + x * camera.zoom * imageSize,
+        centerY + y * camera.zoom * imageSize
     ];
 }
 
@@ -162,8 +155,8 @@ function getScreenCoordinates(gX, gY) {
 
 let levelGrid;
 
-// tileSize shouldn't change... like, ever, references the image size in pixels
-let tileSize = 64;
+// imageSize shouldn't change... like, ever, references the image size in pixels
+let imageSize = 64;
 let levelSize = 10;
 
 // timers in milliseconds
@@ -172,16 +165,21 @@ const deathTimer = 2000;
 let speedIncrease = 0.005;
 let maxSpeed = 0.1;
 
+// currently not used for much, might get more active in the future
 let currentTheme = "water";
 
+// tile player last died on
 let deathTile = null;
+
+/* unused */
 let focussed = true;
 
+// game state
 let running = false;
 
 let playerScore = 0;
 
-// timer for sprite animations
+// timers for sprite animations
 let animationTick = 0;
 const maxAnimationTick = 64;
 
@@ -205,15 +203,18 @@ class Camera {
     // target
     tX;
     tY;
-    m_zoom;
-    m_dZoom;
-    m_speed;
+    // current setZoom
+    zoom;
+    // target setZoom for nice interpolation
+    dZoom;
+    // how fast the camera moves
+    speed;
 
     constructor() {
         this.x = this.y = this.vX = this.vY = this.tX = this.tY = 0;
-        this.m_zoom = 1;
-        this.m_dZoom = 1;
-        this.m_speed = 1;
+        this.zoom = 1;
+        this.dZoom = 1;
+        this.speed = 1;
         this.m_maxSpeed = 10;
     }
 
@@ -236,9 +237,9 @@ class Camera {
         }
 
         // get new magnitude
-        let nM = m * this.m_speed;
+        let nM = m * this.speed;
 
-        if (m > this.maxSpeed) nM = this.m_maxSpeed;
+        if (m > this.m_maxSpeed) nM = this.m_maxSpeed;
 
         v[0] = v[0] / m * nM;
         v[1] = v[1] / m * nM;
@@ -250,16 +251,16 @@ class Camera {
     update() {
         this.updateVel();
 
-        // update zoom
-        let dZ = (this.m_dZoom - this.m_zoom) / 6;
-        this.m_zoom += dZ;
+        // update setZoom
+        let dZ = (this.dZoom - this.zoom) / 6;
+        this.zoom += dZ;
 
         this.x += this.vX;
         this.y += this.vY;
     }
 
-    zoom(z) {
-        this.m_dZoom = z;
+    setZoom(z) {
+        this.dZoom = z;
     }
 }
 
@@ -268,7 +269,6 @@ class Player {
     y;
     lX;
     lY;
-    direction;
     sprite;
     movementTick;
     speed;
@@ -278,7 +278,6 @@ class Player {
 
         this.lX = this.lY = 0;
     
-        this.direction = 0;
         this.sprite = "player_idle";
     
         this.movementTick = 0;
@@ -297,7 +296,7 @@ class Player {
         // if there's no cause, it's a new level
         if (cause) {
             t = deathTimer
-            camera.zoom(3);
+            camera.setZoom(3);
         }
 
         // change player sprite
@@ -314,7 +313,7 @@ class Player {
                 break;
             case "won":
                 this.sprite = "player_won";
-                camera.zoom(2);
+                camera.setZoom(2);
                 break;
         }
 
@@ -341,7 +340,7 @@ class Player {
 
             self.movementTick = 0;
 
-            camera.zoom(2);
+            camera.setZoom(2);
         }
     }
 }
@@ -505,7 +504,7 @@ addEventListener("keydown", (e) => {
         document.getElementById("clicktoplay").click();
         if (!running && !player.movementTick) {
             running = true;
-            camera.zoom(2.2);
+            camera.setZoom(2.2);
         }
     }
 });
