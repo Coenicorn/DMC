@@ -312,6 +312,13 @@ function tick(dt) {
     // normalize
     let m = Math.sqrt(Math.pow(Math.abs(dX), 2) + Math.pow(Math.abs(dY), 2));
 
+    let cX = dX / imageSize / 17;
+    let cY = dY / imageSize / 17;
+
+    camera.follow(player.x-.5+cX, player.y-.5+cY);
+
+    if (!running) return;
+
     // set to player speed
     dX = dX / m * player.speed * dt;
     dY = dY / m * player.speed * dt;
@@ -334,11 +341,8 @@ function loop() {
     animationTick++;
     if (animationTick >= maxAnimationTick) animationTick = 0;
 
-    if (running) {
-        tick(dt);
-    }
+    tick(dt);
     
-    camera.follow(player.x-.5, player.y-.5);
     camera.update();
 
     render();
