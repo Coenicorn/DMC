@@ -113,7 +113,7 @@ function render() {
 
     // render the level on the current canvas
     context.drawImage(levelCache, x, y, levelCache.width * camera.zoom, levelCache.height * camera.zoom);
-    let a = ((deathAmnt - 3) / 7);
+    let a = (deathAmnt / 10);
     context.globalAlpha = a < 0 ? 0 : a / 3;
     context.drawImage(pathCache, x, y, levelCache.width * camera.zoom, levelCache.height * camera.zoom);
     context.globalAlpha = 1;
@@ -369,6 +369,14 @@ function onResize() {
     centerY = height/2;
 }
 
+const controls = {
+    " ": ()=>{
+        document.getElementById("clicktoplay").click();
+        if (!running) running = true;
+        if (!player.movementTick) camera.setZoom(2.2);
+    }
+}
+
 addEventListener("blur", () => focussed = false);
 addEventListener("focus", () => focussed = true);
 addEventListener("resize", onResize);
@@ -377,13 +385,7 @@ addEventListener("mousemove", e => {
     mouse.y = e.clientY;
 });
 addEventListener("keydown", (e) => {
-    if (e.key == " ") {
-        document.getElementById("clicktoplay").click();
-        if (!running && !player.movementTick) {
-            running = true;
-            camera.setZoom(2.2);
-        }
-    }
+    if (controls[e.key]) controls[e.key]();
 });
 
 onload = loadImages;
