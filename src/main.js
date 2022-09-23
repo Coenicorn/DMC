@@ -245,9 +245,11 @@ function handleTile(tile) {
 
         player.kill(cause);
         deathAmnt++;
+        document.getElementById("controls").className = "fadeIn";
     } catch (e) {
         // in case the player goes out of bounds there'd be no tile and an error would occur, hence this
         player.kill(currentTheme + "_death");
+        document.getElementById("controls").className = "fadeIn";
         deathAmnt++;
     }
     if (deathAmnt > 10) deathAmnt = 10;
@@ -353,8 +355,9 @@ function load() {
 
     initNewLevel();
 
-    document.getElementById("howtoplay").style.visibility = "visible";
-    document.getElementById("loadingScreen").className = "animation";
+    // Remove loadingscreen
+    document.getElementById("loadingScreen").className = "fadeOut";
+    document.getElementById("gui").className = "fadeIn";
 
     updateScore();
 
@@ -369,11 +372,21 @@ function onResize() {
     centerY = height/2;
 }
 
+function animateLoad() {
+    if (player || !assetsLoaded) return;
+
+    load();
+}
+
 const controls = {
     " ": ()=>{
-        document.getElementById("clicktoplay").click();
-        if (!running) running = true;
-        if (!player.movementTick) camera.setZoom(2.2);
+        animateLoad();
+        if (!player.movementTick && !running)
+        {   
+            document.getElementById("controls").className = "fadeOut";
+            camera.setZoom(2.2);
+            running = true;
+        }
     }
 }
 
