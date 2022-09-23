@@ -13,7 +13,7 @@ const tiles = ["cracked", "spikes", "nowalk", "checkpoint", "end", "walk", "star
 // To check if a tile is walkable without includes(), just check if it's state is lower/higher than this
 const firstWalkableTile = 3;
 const speedIncrease = 0.003;
-const maxSpeed = 0.08;
+const maxSpeed = 0.07;
 
 class Camera {
     x;

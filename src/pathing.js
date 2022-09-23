@@ -1,16 +1,11 @@
-/*
-    TODO pathfinding
-    ideally returns an array of path tiles
-
-    A*...?
-*/
-
+/* A* pathfinding algorithm */
 function findPath(levelGrid /*two dimensional array of tiles*/, sX, sY, gX, gY) {
 
     const sqrt2 = 1.41421356237;
 
     const open = [];
     const closed = [];
+    // initialize two dimensional array for value lookup
     const values = (function(){
         let o = [];
         for (let i = 0, l = levelGrid.length; i < l; i++) {

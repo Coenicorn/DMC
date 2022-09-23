@@ -1,5 +1,3 @@
-
-
 /*
     Maze generation logic: (not that advanced):
 
