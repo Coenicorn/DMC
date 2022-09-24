@@ -1,19 +1,21 @@
 // timers in milliseconds
 const deathTimer = 2000;
 const maxAnimationTick = 64;
-function Tile(x, y, state) {
-    this.x = x;
-    this.y = y;
-
-    this.state = state;
-}
-
 // if you want to add a new tile, you need to update these three lines of code
 const tiles = ["cracked", "spikes", "nowalk", "checkpoint", "end", "walk", "start"];
 // To check if a tile is walkable without includes(), just check if it's state is lower/higher than this
 const firstWalkableTile = 3;
 const speedIncrease = 0.003;
 const maxSpeed = 0.07;
+
+class Tile {
+    constructor (x, y, state) {
+        this.x = x;
+        this.y = y;
+
+        this.state = state;
+    }
+}
 
 class Camera {
     x;
