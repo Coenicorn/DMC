@@ -7,3 +7,5 @@ Art: Julian & Lucas (thank you so much!)
 Emotional support: Guido
 
 Music (yet to be made lol): Probably Coenicorn but we just can't be sure yet :)
+
+It's kindu bad but we don't talk about that lol
